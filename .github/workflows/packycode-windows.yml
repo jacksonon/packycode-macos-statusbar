@@ -33,6 +33,23 @@ jobs:
           python -m pip install --upgrade pip wheel
           pip install pyinstaller requests
 
+      - name: Ensure icon exists (fallback if missing)
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ ! -f assets/icon.png ]]; then
+            mkdir -p assets
+            python - <<'PY'
+import base64, os
+png_b64 = (
+    'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMB/ai4E4QAAAAASUVORK5CYII='
+)
+with open('assets/icon.png', 'wb') as f:
+    f.write(base64.b64decode(png_b64))
+print('Wrote assets/icon.png (1x1 placeholder)')
+PY
+          fi
+
       - name: Explain limitation
         shell: bash
         run: |
@@ -54,6 +71,7 @@ jobs:
             --onefile --windowed \
             --exclude-module Cocoa \
             --exclude-module objc \
+            --add-data assets/icon.png;assets \
             main.py || true
 
       - name: Upload artifact if exists
@@ -69,4 +87,3 @@ jobs:
         shell: bash
         run: |
           echo "If you need real Windows support, consider adding a CLI entrypoint (no rumps/pyobjc) or a cross-platform tray UI (e.g., pystray), then point PyInstaller to that entrypoint." 
-

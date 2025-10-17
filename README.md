@@ -2,8 +2,8 @@
 
 一个用 Python 编写的 macOS 状态栏应用，用于展示 PackyCode 额度/预算使用情况。
 
-- 参考实现：`GPO/`（macOS 状态栏应用框架，rumps）
-- 数据来源：`packycode-cost/`（三种账号模式与 API 端点约定）
+- 参考实现：`GPO/`（macOS 状态栏应用框架，rumps，非构建依赖）
+- 数据来源：`packycode-cost/`（三种账号模式与 API 端点约定，非构建依赖）
 
 ## 功能
 - 状态栏实时展示：
@@ -63,7 +63,7 @@ pip3 install py2app
 python3 setup.py py2app
 ```
 
-> 注意：图标默认引用 `packycode-cost/assets/icon.png`（已存在于仓库），打包时请确保文件路径有效；或在 `main.py` 中修改 `ICON_CANDIDATES` 指向本地图标。
+> 注意：图标现已固定为仓库内的 `assets/icon.png`。请将你提供的 PNG 放到该路径；若缺失，构建会使用占位图标并继续。
 
 ## 配置存储
 配置持久化在：`~/.packycode/config.json`

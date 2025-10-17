@@ -61,8 +61,7 @@ def _resource_path_candidate(filename: str) -> Optional[str]:
 
 ICON_CANDIDATES = list(filter(None, [
     _resource_path_candidate("icon.png"),  # 优先使用打包在 .app Resources 的图标
-    os.path.join(os.path.dirname(__file__), "../packycode-cost/assets/icon.png"),
-    os.path.join(os.path.dirname(__file__), "../GPO/icon.png"),
+    os.path.join(os.path.dirname(__file__), "assets", "icon.png"),  # 仓库内置图标
 ]))
 
 

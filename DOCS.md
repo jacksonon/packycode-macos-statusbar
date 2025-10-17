@@ -58,8 +58,8 @@
   - `pip3 install py2app`
   - `python3 setup.py py2app`
 - 图标：
-  - 构建时将 `packycode-cost/assets/icon.png` 打包进 `Resources/icon.png`
-  - 运行时优先从 `RESOURCEPATH/icon.png` 加载（`main.py` 已处理），无需额外配置
+  - 将 PNG 放在 `packycode/assets/icon.png`，构建时会自动打包到 `Resources/icon.png`
+  - 运行时优先从 `RESOURCEPATH/icon.png` 加载（`main.py` 已处理）。若缺失，将使用占位图标并继续构建。
 
 ## 4.1 使用 GitHub Actions 构建
 
@@ -120,4 +120,4 @@ codesign --force --deep \
 - 主程序：`packycode/main.py`
 - 依赖：`packycode/requirements.txt`
 - 打包：`packycode/setup.py`、`packycode/build_app.sh`
-- 参考配置与接口：`packycode-cost/`（无需在本地运行，仅供接口字段说明）
+- 参考配置与接口：`packycode-cost/`（无需在本地运行，仅供接口字段说明，不参与构建）
