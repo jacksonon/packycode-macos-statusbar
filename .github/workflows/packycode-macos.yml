@@ -61,16 +61,7 @@ jobs:
           ICON=assets/icon.png
           if [[ ! -f "$ICON" ]]; then
             echo "[warn] $ICON not found. Generating a tiny placeholder icon..."
-            mkdir -p assets
-            python - <<'PY'
-            import base64, os
-            png_b64 = (
-                'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMB/ai4E4QAAAAASUVORK5CYII='
-            )
-            with open('assets/icon.png', 'wb') as f:
-                f.write(base64.b64decode(png_b64))
-            print('Wrote assets/icon.png (1x1 placeholder)')
-            PY
+            python -c "import base64, pathlib; pathlib.Path('assets').mkdir(parents=True, exist_ok=True); open('assets/icon.png','wb').write(base64.b64decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMB/ai4E4QAAAAASUVORK5CYII='))"
           else
             echo "[ok] Found $ICON"
           fi
