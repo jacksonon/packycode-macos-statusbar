@@ -30,7 +30,8 @@ jobs:
 
       - name: Install PyInstaller and minimal deps
         run: |
-          python -m pip install --upgrade pip wheel
+          python -m pip install --upgrade pip
+          pip uninstall -y wheel || true
           pip install pyinstaller requests
 
       - name: Ensure icon exists (fallback if missing)

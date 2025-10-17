@@ -30,6 +30,20 @@ OPTIONS = {
         "LSUIElement": True,  # 仅状态栏图标，不显示 Dock 图标
     },
     "packages": ["rumps", "requests"],
+    # 避免将非运行时依赖（pip/wheel/setuptools等）打入包，解决偶发 File exists: wheel-*.dist-info 冲突
+    "excludes": [
+        "pip",
+        "wheel",
+        "setuptools",
+        "pkg_resources",
+        "distutils",
+    ],
+    # 明确包含 requests 的依赖子模块，避免某些环境下被遗漏
+    "includes": [
+        "idna",
+        "charset_normalizer",
+        "urllib3",
+    ],
 }
 
 setup(

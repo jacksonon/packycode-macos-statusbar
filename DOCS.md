@@ -109,6 +109,10 @@ codesign --force --deep \
   - 若遇到写入 `~/Library/Application Support/PackyCode` 权限问题，请以普通用户会话运行，或用已签名的 .app 运行。
 - 状态栏无图标/标题：
   - 首次启动已自动刷新一次；若仍无显示，请检查网络、Token、账号类型，以及 `隐藏/展示` 设置。
+- 打包报错 `File exists: wheel-*.dist-info`：
+  - 先清理：`bash build.sh` 或 `bash build_app.sh --clean`
+  - 使用 Python 3.11（py2app 对 3.13 支持尚不稳定）
+  - 我们在 `setup.py` 已排除 `pip/wheel/setuptools` 打包，通常可解决。
 
 ## 7. 安全说明
 

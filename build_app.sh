@@ -39,7 +39,25 @@ if [[ ${CLEAN} -eq 1 ]]; then
 fi
 
 PY=python3
+# Prefer Python 3.11 for py2app stability if available
+CHOSEN_VER="$(${PY} -c 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}")' 2>/dev/null || echo "")"
+if [[ "$CHOSEN_VER" == "3.13" ]] && command -v python3.11 >/dev/null 2>&1; then
+  echo "[venv] Detected Python ${CHOSEN_VER}. Will prefer python3.11 for better py2app compatibility."
+  PY=python3.11
+  CHOSEN_VER="3.11"
+fi
 if [[ ${USE_VENV} -eq 1 ]]; then
+  if [[ -d .venv ]]; then
+    # If existing venv uses an incompatible Python, recreate with preferred version
+    if [[ -x .venv/bin/python ]]; then
+      VENV_VER="$(.venv/bin/python -c 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}")' 2>/dev/null || echo "")"
+      if [[ "$VENV_VER" != "$CHOSEN_VER" && -n "$CHOSEN_VER" ]]; then
+        echo "[venv] Recreating .venv using Python ${CHOSEN_VER} (was ${VENV_VER}) ..."
+        rm -rf .venv
+      fi
+    fi
+  fi
+
   if [[ ! -d .venv ]]; then
     echo "[venv] Creating virtual environment (.venv) ..."
     ${PY} -m venv .venv
@@ -51,11 +69,27 @@ if [[ ${USE_VENV} -eq 1 ]]; then
 fi
 
 echo "[deps] Installing runtime dependencies ..."
-${PY} -m pip install --upgrade pip wheel >/dev/null
+${PY} -m pip install --upgrade pip >/dev/null
+# wheel is not needed for runtime; uninstall to avoid py2app duplicate dist-info collection
+${PY} -m pip uninstall -y wheel >/dev/null 2>&1 || true
 ${PY} -m pip install -r requirements.txt
 
 echo "[deps] Installing py2app ..."
 ${PY} -m pip install py2app
+
+echo "[icon] Ensuring assets/icon.png exists (fallback placeholder if missing) ..."
+if [[ ! -f assets/icon.png ]]; then
+  mkdir -p assets
+  python - <<'PY'
+import base64, os
+png_b64 = (
+    'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMB/ai4E4QAAAAASUVORK5CYII='
+)
+with open('assets/icon.png', 'wb') as f:
+    f.write(base64.b64decode(png_b64))
+print('Wrote assets/icon.png (1x1 placeholder)')
+PY
+fi
 
 echo "[build] Running py2app ..."
 ${PY} setup.py py2app -q
@@ -74,4 +108,3 @@ else
   echo "[error] Build failed, not found: ${APP_PATH}" >&2
   exit 1
 fi
-
