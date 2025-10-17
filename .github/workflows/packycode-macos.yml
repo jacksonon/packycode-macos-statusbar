@@ -46,8 +46,8 @@ jobs:
           key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
 
       - name: Install dependencies
+        working-directory: ${{ steps.wd.outputs.dir }}
         run: |
-          cd "$wd"
           python -m pip install --upgrade pip
           pip uninstall -y wheel || true
           pip install -r requirements.txt
@@ -55,25 +55,36 @@ jobs:
 
       - name: Ensure icon exists (fallback if missing)
         shell: bash
+        working-directory: ${{ steps.wd.outputs.dir }}
         run: |
           set -euo pipefail
-          cd "$wd"
           ICON=assets/icon.png
           if [[ ! -f "$ICON" ]]; then
-            echo "[warn] $ICON not found. Generating a tiny placeholder icon..."
-            python -c "import base64, pathlib; pathlib.Path('assets').mkdir(parents=True, exist_ok=True); open('assets/icon.png','wb').write(base64.b64decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMB/ai4E4QAAAAASUVORK5CYII='))"
+            echo "[warn] $ICON not found. Will probe common locations and fallback to placeholder."
+            for CAND in icon.png Icon.png ICON.png images/icon.png assets/Icon.png; do
+              if [[ -f "$CAND" ]]; then
+                mkdir -p assets
+                cp "$CAND" "$ICON"
+                echo "[ok] Copied $CAND -> $ICON"
+                break
+              fi
+            done
+          fi
+          if [[ ! -f "$ICON" ]]; then
+            python -c "import base64, pathlib; pathlib.Path('assets').mkdir(parents=True, exist_ok=True); open('assets/icon.png','wb').write(base64.b64decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMB/ai4E4QAAAAASUVORK5CYII='))";
+            echo "[ok] Generated placeholder icon at $ICON"
           else
             echo "[ok] Found $ICON"
           fi
 
       - name: Build .app
+        working-directory: ${{ steps.wd.outputs.dir }}
         run: |
-          cd "$wd"
           python setup.py py2app -q
 
       - name: Archive app (zip)
+        working-directory: ${{ steps.wd.outputs.dir }}/dist
         run: |
-          cd "$wd/dist"
           ditto -c -k --sequesterRsrc --keepParent PackyCode.app PackyCode-macOS.zip
 
       - name: Upload artifact
