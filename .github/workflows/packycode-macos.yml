@@ -1,12 +1,40 @@
 name: Build PackyCode macOS app
 
 on:
-  workflow_dispatch: {}
+  workflow_dispatch:
+    inputs:
+      publish:
+        description: "Publish a GitHub Release with the built zip"
+        required: false
+        default: "false"
+      tag:
+        description: "Release tag when publishing from manual run (optional)"
+        required: false
+        default: ""
+      release_name:
+        description: "Release title (optional)"
+        required: false
+        default: ""
+      prerelease:
+        description: "Mark as prerelease"
+        required: false
+        default: "false"
+      draft:
+        description: "Create as draft"
+        required: false
+        default: "false"
+      make_latest:
+        description: "Latest flag: true | false | legacy"
+        required: false
+        default: "true"
   push:
     tags:
       - 'v*'
     paths:
       - '**'
+
+permissions:
+  contents: write
 
 jobs:
   build-macos:
@@ -87,6 +115,19 @@ jobs:
         run: |
           ditto -c -k --sequesterRsrc --keepParent PackyCode.app PackyCode-macOS.zip
 
+      - name: Prepare release metadata
+        id: relmeta
+        run: |
+          if [[ "${{ startsWith(github.ref, 'refs/tags/') }}" == "true" ]]; then
+            echo "REL_TAG=${{ github.ref_name }}" >> "$GITHUB_ENV"
+          else
+            if [[ -n "${{ inputs.tag }}" ]]; then
+              echo "REL_TAG=${{ inputs.tag }}" >> "$GITHUB_ENV"
+            else
+              echo "REL_TAG=build-${{ github.run_number }}" >> "$GITHUB_ENV"
+            fi
+          fi
+
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
@@ -94,11 +135,18 @@ jobs:
           path: |
             ${{ steps.wd.outputs.dir }}/dist/PackyCode-macOS.zip
 
-      - name: Create GitHub Release (on tag)
-        if: startsWith(github.ref, 'refs/tags/')
+      - name: Publish GitHub Release
+        if: inputs.publish == 'true' || startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v2
         with:
+          tag_name: ${{ env.REL_TAG }}
+          name: ${{ inputs.release_name != '' && inputs.release_name || env.REL_TAG }}
           files: |
             ${{ steps.wd.outputs.dir }}/dist/PackyCode-macOS.zip
+          target_commitish: ${{ github.sha }}
+          generate_release_notes: true
+          make_latest: ${{ inputs.make_latest != '' && inputs.make_latest || 'true' }}
+          draft: ${{ inputs.draft == 'true' }}
+          prerelease: ${{ inputs.prerelease == 'true' }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
