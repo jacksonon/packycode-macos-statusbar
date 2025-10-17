@@ -21,9 +21,11 @@ jobs:
         run: |
           if [[ -f requirements.txt && -f setup.py && -f main.py ]]; then
             echo "wd=." >> "$GITHUB_ENV"
+            echo "dir=." >> "$GITHUB_OUTPUT"
             echo "Workspace looks like packycode root";
           elif [[ -f packycode/requirements.txt && -f packycode/setup.py ]]; then
             echo "wd=packycode" >> "$GITHUB_ENV"
+            echo "dir=packycode" >> "$GITHUB_OUTPUT"
             echo "Workspace looks like monorepo; using packycode/ as WD";
           else
             echo "Unable to locate requirements.txt/setup.py" >&2
@@ -61,14 +63,14 @@ jobs:
             echo "[warn] $ICON not found. Generating a tiny placeholder icon..."
             mkdir -p assets
             python - <<'PY'
-import base64, os
-png_b64 = (
-    'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMB/ai4E4QAAAAASUVORK5CYII='
-)
-with open('assets/icon.png', 'wb') as f:
-    f.write(base64.b64decode(png_b64))
-print('Wrote assets/icon.png (1x1 placeholder)')
-PY
+            import base64, os
+            png_b64 = (
+                'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMB/ai4E4QAAAAASUVORK5CYII='
+            )
+            with open('assets/icon.png', 'wb') as f:
+                f.write(base64.b64decode(png_b64))
+            print('Wrote assets/icon.png (1x1 placeholder)')
+            PY
           else
             echo "[ok] Found $ICON"
           fi
@@ -88,13 +90,13 @@ PY
         with:
           name: PackyCode-macOS
           path: |
-            ${{ env.wd }}/dist/PackyCode-macOS.zip
+            ${{ steps.wd.outputs.dir }}/dist/PackyCode-macOS.zip
 
       - name: Create GitHub Release (on tag)
         if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v2
         with:
           files: |
-            ${{ env.wd }}/dist/PackyCode-macOS.zip
+            ${{ steps.wd.outputs.dir }}/dist/PackyCode-macOS.zip
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
