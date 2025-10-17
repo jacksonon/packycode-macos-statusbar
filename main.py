@@ -17,8 +17,8 @@ import rumps
 
 CONFIG_DIR = os.path.join(os.path.expanduser("~"), ".packycode")
 CONFIG_FILE = os.path.join(CONFIG_DIR, "config.json")
-REQUEST_COST_USD = 0.014  # 单次请求成本（美金）
-LEGACY_REQUEST_COST_USD = (0.0173, 0.01622565, 0.015)
+REQUEST_COST_USD = 0.013  # 单次请求成本（美金）
+LEGACY_REQUEST_COST_USD = (0.0173, 0.01622565, 0.015, 0.014)
 
 DEFAULT_CONFIG = {
     "account_version": "shared",  # shared | private | codex_shared
