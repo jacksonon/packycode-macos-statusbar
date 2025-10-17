@@ -63,7 +63,7 @@
 
 ## 4.1 使用 GitHub Actions 构建
 
-- 工作流文件：`.github/workflows/packycode-macos.yml`
+- 工作流文件：`packycode/.github/workflows/packycode-macos.yml`
 - 触发方式：
   - 手动触发（Workflow Dispatch）
   - 推送 tag（以 `v*` 开头），或当 `packycode/**` 变更时
@@ -73,6 +73,10 @@
 - 本地预览工作流：
   - 确认 Python 版本（默认使用 3.11）
   - 工作流步骤等同本地执行：安装依赖 → `py2app` 构建 → `ditto` 打包 zip
+
+注意：
+- 如果你将 `packycode/` 作为仓库根目录推送至 GitHub（推荐独立仓库方式），上述工作流即可被检测并生效。
+- 如果你的仓库根目录是更高一层（例如包含多个项目），GitHub 仅识别仓库根的 `.github/workflows/`，此时需将该工作流移到仓库根的 `.github/workflows/` 下。
 
 ## 5.（可选）签名与公证
 

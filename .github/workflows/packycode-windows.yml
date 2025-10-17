@@ -1,0 +1,72 @@
+name: Build PackyCode Windows exe (experimental)
+
+on:
+  workflow_dispatch:
+    inputs:
+      attempt_build:
+        description: "Attempt Windows build (experimental; macOS-only app)"
+        required: false
+        default: "false"
+
+jobs:
+  build-windows:
+    if: inputs.attempt_build == 'true'
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Cache pip
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~\AppData\Local\pip\Cache
+          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements*.txt') }}
+
+      - name: Install PyInstaller and minimal deps
+        run: |
+          python -m pip install --upgrade pip wheel
+          pip install pyinstaller requests
+
+      - name: Explain limitation
+        shell: bash
+        run: |
+          echo "This project is macOS-only (rumps/pyobjc)." >&2
+          echo "A Windows build is experimental and expected to fail until the app is refactored to a cross-platform UI or a CLI variant." >&2
+
+      - name: Attempt to build with PyInstaller (best effort)
+        shell: bash
+        continue-on-error: true
+        run: |
+          set -euo pipefail
+          if [[ ! -f main.py && -f packycode/main.py ]]; then
+            cd packycode
+          fi
+          echo "[info] Using Python: $(python --version)"
+          # Try to build; exclude mac-only modules to reduce failures
+          pyinstaller --noconfirm --clean \
+            --name PackyCode \
+            --onefile --windowed \
+            --exclude-module Cocoa \
+            --exclude-module objc \
+            main.py || true
+
+      - name: Upload artifact if exists
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: PackyCode-Windows-experimental
+          path: |
+            dist/PackyCode.exe
+          if-no-files-found: warn
+
+      - name: Final note
+        shell: bash
+        run: |
+          echo "If you need real Windows support, consider adding a CLI entrypoint (no rumps/pyobjc) or a cross-platform tray UI (e.g., pystray), then point PyInstaller to that entrypoint." 
+
