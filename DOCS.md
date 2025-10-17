@@ -61,6 +61,19 @@
   - 构建时将 `packycode-cost/assets/icon.png` 打包进 `Resources/icon.png`
   - 运行时优先从 `RESOURCEPATH/icon.png` 加载（`main.py` 已处理），无需额外配置
 
+## 4.1 使用 GitHub Actions 构建
+
+- 工作流文件：`.github/workflows/packycode-macos.yml`
+- 触发方式：
+  - 手动触发（Workflow Dispatch）
+  - 推送 tag（以 `v*` 开头），或当 `packycode/**` 变更时
+- 产物：
+  - 构建 `.app` 后打包为 `PackyCode-macOS.zip` 并作为 artifact 上传
+  - 若以 tag 推送，自动创建 Release 并附带该 zip
+- 本地预览工作流：
+  - 确认 Python 版本（默认使用 3.11）
+  - 工作流步骤等同本地执行：安装依赖 → `py2app` 构建 → `ditto` 打包 zip
+
 ## 5.（可选）签名与公证
 
 - Ad-hoc 签名（本地运行/分发测试）：
@@ -104,4 +117,3 @@ codesign --force --deep \
 - 依赖：`packycode/requirements.txt`
 - 打包：`packycode/setup.py`、`packycode/build_app.sh`
 - 参考配置与接口：`packycode-cost/`（无需在本地运行，仅供接口字段说明）
-
