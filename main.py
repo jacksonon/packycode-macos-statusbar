@@ -1,4 +1,5 @@
 import datetime
+import math
 import json
 import os
 import threading
@@ -16,15 +17,19 @@ import rumps
 
 CONFIG_DIR = os.path.join(os.path.expanduser("~"), ".packycode")
 CONFIG_FILE = os.path.join(CONFIG_DIR, "config.json")
+REQUEST_COST_USD = 0.014  # 单次请求成本（美金）
+LEGACY_REQUEST_COST_USD = (0.0173, 0.01622565, 0.015)
 
 DEFAULT_CONFIG = {
     "account_version": "shared",  # shared | private | codex_shared
     "token": "",
     "hidden": False,
     "poll_interval": 180,  # seconds
+    "request_cost_usd": REQUEST_COST_USD,
     # 标题显示模式：percent | custom
     "title_mode": "percent",
-    # 自定义模板占位符：{d_pct} {m_pct} {d_spent} {d_limit} {m_spent} {m_limit} {bal}
+    "title_include_requests": False,
+    # 自定义模板占位符：{d_pct} {m_pct} {d_spent} {d_limit} {m_spent} {m_limit} {bal} {d_req}
     "title_custom": "D {d_pct}% | M {m_pct}%",
 }
 
@@ -85,6 +90,11 @@ def load_config() -> Dict[str, Any]:
         # 合并默认值
         merged = DEFAULT_CONFIG.copy()
         merged.update({k: v for k, v in data.items() if k in DEFAULT_CONFIG})
+        current_cost = merged.get("request_cost_usd", REQUEST_COST_USD)
+        for legacy_cost in LEGACY_REQUEST_COST_USD:
+            if math.isclose(current_cost, legacy_cost, rel_tol=0.0, abs_tol=1e-9):
+                merged["request_cost_usd"] = REQUEST_COST_USD
+                break
         return merged
     except Exception:
         return DEFAULT_CONFIG.copy()
@@ -150,6 +160,9 @@ class PackycodeStatusApp(rumps.App):
         self.info_daily = rumps.MenuItem("每日：-/- (剩余 -)")
         self.info_daily.set_callback(None)
 
+        self.info_requests = rumps.MenuItem("请求次数：-")
+        self.info_requests.set_callback(None)
+
         self.info_monthly = rumps.MenuItem("每月：-/- (剩余 -)")
         self.info_monthly.set_callback(None)
 
@@ -170,12 +183,14 @@ class PackycodeStatusApp(rumps.App):
         self.menu_title_fmt = {
             "百分比": rumps.MenuItem("百分比", callback=self._set_title_percent),
             "自定义...": rumps.MenuItem("自定义...", callback=self._set_title_custom),
+            "显示请求次数": rumps.MenuItem("显示请求次数", callback=self._toggle_title_requests),
         }
 
         # 完整菜单
         self.menu = [
             self.info_title,
             self.info_daily,
+            self.info_requests,
             self.info_monthly,
             self.info_balance,
             self.info_last,
@@ -261,6 +276,8 @@ class PackycodeStatusApp(rumps.App):
         mode = self._cfg.get("title_mode", "percent")
         self.menu_title_fmt["百分比"].state = 1 if mode == "percent" else 0
         # 自定义是一个操作项（...），不打勾
+        include_requests = bool(self._cfg.get("title_include_requests"))
+        self.menu_title_fmt["显示请求次数"].state = 1 if include_requests else 0
 
     def _set_title_percent(self, _: Optional[rumps.MenuItem] = None):
         with self._lock:
@@ -275,7 +292,7 @@ class PackycodeStatusApp(rumps.App):
     def _set_title_custom(self, _: Optional[rumps.MenuItem] = None):
         help_text = (
             "自定义标题模板，支持占位符：\n"
-            "{d_pct} {m_pct} {d_spent} {d_limit} {m_spent} {m_limit} {bal}\n"
+            "{d_pct} {m_pct} {d_spent} {d_limit} {m_spent} {m_limit} {bal} {d_req}\n"
             "例如: D {d_pct}% | M {m_pct}% 或 $ {bal}"
         )
         win = rumps.Window(
@@ -295,6 +312,14 @@ class PackycodeStatusApp(rumps.App):
                     save_config(self._cfg)
                 self._update_title_format_checkmarks()
                 self._refresh(force=True)
+
+    def _toggle_title_requests(self, _: Optional[rumps.MenuItem] = None):
+        with self._lock:
+            include = not bool(self._cfg.get("title_include_requests"))
+            self._cfg["title_include_requests"] = include
+            save_config(self._cfg)
+        self._update_title_format_checkmarks()
+        self._refresh(force=True)
 
     # ------------- 定时逻辑 -------------
     def _on_tick(self, _timer: rumps.Timer):
@@ -358,6 +383,7 @@ class PackycodeStatusApp(rumps.App):
             self.info_title.title = "状态：无数据"
             self.title = "" if self._cfg.get("hidden") else "无数据"
             self.info_last.title = f"上次更新：{now_str()}"
+            self.info_requests.title = "请求次数：-"
             return
 
         # 解析字段（参考 packycode-cost UserApiResponse 与转换逻辑）
@@ -367,6 +393,8 @@ class PackycodeStatusApp(rumps.App):
         monthly_spent = parse_float(info.get("monthly_spent_usd"))
         balance_str = info.get("balance_usd")
         balance = parse_float(balance_str) if balance_str is not None else None
+        request_cost = parse_float(self._cfg.get("request_cost_usd"))
+        daily_requests = math.ceil(daily_spent / request_cost) if request_cost > 0 else None
 
         daily_remaining = max(0.0, daily_limit - daily_spent) if daily_limit else 0.0
         monthly_remaining = max(0.0, monthly_limit - monthly_spent) if monthly_limit else 0.0
@@ -378,6 +406,10 @@ class PackycodeStatusApp(rumps.App):
             if daily_limit > 0
             else f"每日：{daily_spent:.2f}/- (剩余 -)"
         )
+        if daily_requests is not None:
+            self.info_requests.title = f"请求次数：{daily_requests}"
+        else:
+            self.info_requests.title = "请求次数：-"
         self.info_monthly.title = (
             f"每月：{monthly_spent:.2f}/{monthly_limit:.2f} (剩余 {monthly_remaining:.2f})"
             if monthly_limit > 0
@@ -400,6 +432,7 @@ class PackycodeStatusApp(rumps.App):
     def _update_ui_error(self, err: str):
         self.info_title.title = f"状态：错误 - {err}"
         self.info_last.title = f"上次更新：{now_str()}"
+        self.info_requests.title = "请求次数：-"
         if not self._cfg.get("hidden"):
             self.title = "错误"
 
@@ -412,6 +445,8 @@ class PackycodeStatusApp(rumps.App):
         monthly_spent = parse_float(info.get("monthly_spent_usd"))
         balance_str = info.get("balance_usd")
         balance = parse_float(balance_str) if balance_str is not None else None
+        request_cost = parse_float(self._cfg.get("request_cost_usd"))
+        daily_requests = math.ceil(daily_spent / request_cost) if request_cost > 0 else None
 
         d_pct = 0.0
         m_pct = 0.0
@@ -428,18 +463,29 @@ class PackycodeStatusApp(rumps.App):
             "m_limit": f"{monthly_limit:.0f}",
             "m_pct": f"{m_pct:.0f}",
             "bal": f"{balance:.2f}" if balance is not None else "-",
+            "d_req": str(daily_requests) if daily_requests is not None else "-",
         }
 
         mode = self._cfg.get("title_mode", "percent")
+        include_requests = bool(self._cfg.get("title_include_requests"))
         if mode == "percent":
             # 缺省百分比样式
-            return f"D {ctx['d_pct']}% | M {ctx['m_pct']}%"
+            title = f"D {ctx['d_pct']}% | M {ctx['m_pct']}%"
+            if include_requests and daily_requests is not None:
+                title = f"{title} | Req {ctx['d_req']}"
+            return title
         elif mode == "custom":
             tpl = self._cfg.get("title_custom") or DEFAULT_CONFIG["title_custom"]
-            return _safe_format_template(tpl, ctx)
+            title = _safe_format_template(tpl, ctx)
+            if include_requests and daily_requests is not None and "{d_req}" not in tpl:
+                title = f"{title} | Req {ctx['d_req']}"
+            return title
         else:
             # 兜底：百分比
-            return f"D {ctx['d_pct']}% | M {ctx['m_pct']}%"
+            title = f"D {ctx['d_pct']}% | M {ctx['m_pct']}%"
+            if include_requests and daily_requests is not None:
+                title = f"{title} | Req {ctx['d_req']}"
+            return title
 
 
 def _safe_format_template(tpl: str, ctx: Dict[str, str]) -> str:
