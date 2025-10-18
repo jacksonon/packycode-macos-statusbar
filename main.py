@@ -17,15 +17,13 @@ import rumps
 
 CONFIG_DIR = os.path.join(os.path.expanduser("~"), ".packycode")
 CONFIG_FILE = os.path.join(CONFIG_DIR, "config.json")
-REQUEST_COST_USD = 0.013  # 单次请求成本（美金）
-LEGACY_REQUEST_COST_USD = (0.0173, 0.01622565, 0.015, 0.014)
+REQUEST_COST_USD = 0.0175  # 单次请求成本（美金）
 
 DEFAULT_CONFIG = {
     "account_version": "shared",  # shared | private | codex_shared
     "token": "",
     "hidden": False,
     "poll_interval": 180,  # seconds
-    "request_cost_usd": REQUEST_COST_USD,
     # 标题显示模式：percent | custom
     "title_mode": "percent",
     "title_include_requests": False,
@@ -90,11 +88,6 @@ def load_config() -> Dict[str, Any]:
         # 合并默认值
         merged = DEFAULT_CONFIG.copy()
         merged.update({k: v for k, v in data.items() if k in DEFAULT_CONFIG})
-        current_cost = merged.get("request_cost_usd", REQUEST_COST_USD)
-        for legacy_cost in LEGACY_REQUEST_COST_USD:
-            if math.isclose(current_cost, legacy_cost, rel_tol=0.0, abs_tol=1e-9):
-                merged["request_cost_usd"] = REQUEST_COST_USD
-                break
         return merged
     except Exception:
         return DEFAULT_CONFIG.copy()
@@ -113,6 +106,12 @@ def parse_float(value: Any) -> float:
         return float(value)
     except Exception:
         return 0.0
+
+
+def round_half_up(value: float) -> int:
+    if value >= 0:
+        return int(math.floor(value + 0.5))
+    return int(math.ceil(value - 0.5))
 
 
 def fmt_money(value: Optional[float]) -> str:
@@ -393,8 +392,10 @@ class PackycodeStatusApp(rumps.App):
         monthly_spent = parse_float(info.get("monthly_spent_usd"))
         balance_str = info.get("balance_usd")
         balance = parse_float(balance_str) if balance_str is not None else None
-        request_cost = parse_float(self._cfg.get("request_cost_usd"))
-        daily_requests = math.ceil(daily_spent / request_cost) if request_cost > 0 else None
+        daily_requests_ratio = (daily_spent / REQUEST_COST_USD) if REQUEST_COST_USD > 0 else None
+        daily_requests = (
+            round_half_up(daily_requests_ratio) if daily_requests_ratio is not None else None
+        )
 
         daily_remaining = max(0.0, daily_limit - daily_spent) if daily_limit else 0.0
         monthly_remaining = max(0.0, monthly_limit - monthly_spent) if monthly_limit else 0.0
@@ -445,8 +446,10 @@ class PackycodeStatusApp(rumps.App):
         monthly_spent = parse_float(info.get("monthly_spent_usd"))
         balance_str = info.get("balance_usd")
         balance = parse_float(balance_str) if balance_str is not None else None
-        request_cost = parse_float(self._cfg.get("request_cost_usd"))
-        daily_requests = math.ceil(daily_spent / request_cost) if request_cost > 0 else None
+        daily_requests_ratio = (daily_spent / REQUEST_COST_USD) if REQUEST_COST_USD > 0 else None
+        daily_requests = (
+            round_half_up(daily_requests_ratio) if daily_requests_ratio is not None else None
+        )
 
         d_pct = 0.0
         m_pct = 0.0
