@@ -1,4 +1,5 @@
 import datetime
+import base64
 import math
 import json
 import os
@@ -17,7 +18,6 @@ import rumps
 
 CONFIG_DIR = os.path.join(os.path.expanduser("~"), ".packycode")
 CONFIG_FILE = os.path.join(CONFIG_DIR, "config.json")
-REQUEST_COST_USD = 0.0175  # 单次请求成本（美金）
 
 DEFAULT_CONFIG = {
     "account_version": "shared",  # shared | private | codex_shared
@@ -51,6 +51,7 @@ ACCOUNT_ENV = {
 }
 
 USER_INFO_PATH = "/api/backend/users/info"
+USAGE_STATS_PATH_TMPL = "/api/backend/users/{user_id}/usage-stats?days=30"
 
 # 候选图标
 def _resource_path_candidate(filename: str) -> Optional[str]:
@@ -150,6 +151,7 @@ class PackycodeStatusApp(rumps.App):
         self._lock = threading.RLock()
         self._last_data: Dict[str, Any] = {}
         self._last_error: Optional[str] = None
+        self._last_usage: Optional[Dict[str, Any]] = None
 
         # 信息区（只读）
         self.info_title = rumps.MenuItem("状态：未初始化")
@@ -161,6 +163,10 @@ class PackycodeStatusApp(rumps.App):
 
         self.info_requests = rumps.MenuItem("请求次数：-")
         self.info_requests.set_callback(None)
+
+        # 使用统计扩展
+        self.info_usage_span = rumps.MenuItem("近30日：-")
+        self.info_usage_span.set_callback(None)
 
         self.info_monthly = rumps.MenuItem("每月：-/- (剩余 -)")
         self.info_monthly.set_callback(None)
@@ -190,6 +196,7 @@ class PackycodeStatusApp(rumps.App):
             self.info_title,
             self.info_daily,
             self.info_requests,
+            self.info_usage_span,
             self.info_monthly,
             self.info_balance,
             self.info_last,
@@ -347,8 +354,14 @@ class PackycodeStatusApp(rumps.App):
         try:
             info = self._fetch_user_info()
             self._last_data = info or {}
+            # 若为 JWT，尝试拉取使用次数统计
+            try:
+                usage = self._maybe_fetch_usage_stats()
+            except Exception:
+                usage = None
+            self._last_usage = usage
             self._last_error = None
-            self._update_ui_from_info(info)
+            self._update_ui_from_info(info, usage)
         except Exception as e:
             self._last_error = str(e)
             self._update_ui_error(str(e))
@@ -377,12 +390,48 @@ class PackycodeStatusApp(rumps.App):
             return data["data"]
         return data
 
-    def _update_ui_from_info(self, info: Optional[Dict[str, Any]]):
+    def _maybe_fetch_usage_stats(self) -> Optional[Dict[str, Any]]:
+        """Token 为 JWT 时，调用 codex 接口获取使用次数统计。
+
+        返回示例：
+        {
+          "today_usage": {"date": "YYYY-MM-DD", "api_calls": N},
+          "daily_trend": [{"date": "YYYY-MM-DD", "api_calls": M}, ...]
+        }
+        失败或不可用时返回 None。
+        """
+        token = (self._cfg.get("token") or "").strip()
+        if not _is_probable_jwt(token):
+            return None
+
+        user_id = _extract_user_id_from_jwt(token)
+        if not user_id:
+            return None
+
+        # 统一使用 codex 域（接口示例提供于该域）
+        env = ACCOUNT_ENV.get("codex_shared", ACCOUNT_ENV["shared"])  # type: ignore
+        url = f"{env['base']}{USAGE_STATS_PATH_TMPL.format(user_id=user_id)}"
+
+        headers = {
+            "Authorization": f"Bearer {token}",
+            "Accept": "application/json",
+            "User-Agent": "PackyCode-StatusBar/1.0",
+        }
+        resp = requests.get(url, headers=headers, timeout=10)
+        if resp.status_code >= 400:
+            return None
+        try:
+            return resp.json()
+        except Exception:
+            return None
+
+    def _update_ui_from_info(self, info: Optional[Dict[str, Any]], usage: Optional[Dict[str, Any]]):
         if not info:
             self.info_title.title = "状态：无数据"
             self.title = "" if self._cfg.get("hidden") else "无数据"
             self.info_last.title = f"上次更新：{now_str()}"
             self.info_requests.title = "请求次数：-"
+            self.info_usage_span.title = "近30日：-"
             return
 
         # 解析字段（参考 packycode-cost UserApiResponse 与转换逻辑）
@@ -392,10 +441,32 @@ class PackycodeStatusApp(rumps.App):
         monthly_spent = parse_float(info.get("monthly_spent_usd"))
         balance_str = info.get("balance_usd")
         balance = parse_float(balance_str) if balance_str is not None else None
-        daily_requests_ratio = (daily_spent / REQUEST_COST_USD) if REQUEST_COST_USD > 0 else None
-        daily_requests = (
-            round_half_up(daily_requests_ratio) if daily_requests_ratio is not None else None
-        )
+
+        # 使用次数接口（若为 JWT）
+        today_calls: Optional[int] = None
+        span_desc: Optional[str] = None
+        if usage and isinstance(usage, dict):
+            try:
+                tu = usage.get("today_usage") or {}
+                if tu and tu.get("api_calls") is not None:
+                    today_calls = int(tu.get("api_calls"))
+            except Exception:
+                today_calls = None
+            try:
+                trend = usage.get("daily_trend") or []
+                if isinstance(trend, list) and trend:
+                    total = 0
+                    cnt = 0
+                    for it in trend:
+                        try:
+                            total += int(it.get("api_calls", 0))
+                            cnt += 1
+                        except Exception:
+                            pass
+                    if cnt > 0:
+                        span_desc = f"总 {total}，日均 {round_half_up(total / cnt)}"
+            except Exception:
+                span_desc = None
 
         daily_remaining = max(0.0, daily_limit - daily_spent) if daily_limit else 0.0
         monthly_remaining = max(0.0, monthly_limit - monthly_spent) if monthly_limit else 0.0
@@ -407,10 +478,12 @@ class PackycodeStatusApp(rumps.App):
             if daily_limit > 0
             else f"每日：{daily_spent:.2f}/- (剩余 -)"
         )
-        if daily_requests is not None:
-            self.info_requests.title = f"请求次数：{daily_requests}"
+        if today_calls is not None:
+            self.info_requests.title = f"请求次数：{today_calls}"
         else:
             self.info_requests.title = "请求次数：-"
+
+        self.info_usage_span.title = f"近30日：{span_desc}" if span_desc else "近30日：-"
         self.info_monthly.title = (
             f"每月：{monthly_spent:.2f}/{monthly_limit:.2f} (剩余 {monthly_remaining:.2f})"
             if monthly_limit > 0
@@ -428,17 +501,18 @@ class PackycodeStatusApp(rumps.App):
             self.title = ""
             return
 
-        self.title = self._make_title(info)
+        self.title = self._make_title(info, usage)
 
     def _update_ui_error(self, err: str):
         self.info_title.title = f"状态：错误 - {err}"
         self.info_last.title = f"上次更新：{now_str()}"
         self.info_requests.title = "请求次数：-"
+        self.info_usage_span.title = "近30日：-"
         if not self._cfg.get("hidden"):
             self.title = "错误"
 
     # ------------- 标题格式化 -------------
-    def _make_title(self, info: Dict[str, Any]) -> str:
+    def _make_title(self, info: Dict[str, Any], usage: Optional[Dict[str, Any]]) -> str:
         # 构造上下文
         daily_limit = parse_float(info.get("daily_budget_usd"))
         daily_spent = parse_float(info.get("daily_spent_usd"))
@@ -446,10 +520,15 @@ class PackycodeStatusApp(rumps.App):
         monthly_spent = parse_float(info.get("monthly_spent_usd"))
         balance_str = info.get("balance_usd")
         balance = parse_float(balance_str) if balance_str is not None else None
-        daily_requests_ratio = (daily_spent / REQUEST_COST_USD) if REQUEST_COST_USD > 0 else None
-        daily_requests = (
-            round_half_up(daily_requests_ratio) if daily_requests_ratio is not None else None
-        )
+        # 从 usage 获取今日请求数
+        daily_requests: Optional[int] = None
+        if usage and isinstance(usage, dict):
+            try:
+                tu = usage.get("today_usage") or {}
+                if tu and tu.get("api_calls") is not None:
+                    daily_requests = int(tu.get("api_calls"))
+            except Exception:
+                daily_requests = None
 
         d_pct = 0.0
         m_pct = 0.0
@@ -498,6 +577,35 @@ def _safe_format_template(tpl: str, ctx: Dict[str, str]) -> str:
         out = out.replace("{" + k + "}", v)
     # 简单清理多余空格
     return " ".join(out.split())
+
+
+def _is_probable_jwt(token: str) -> bool:
+    parts = token.split(".")
+    if len(parts) != 3:
+        return False
+    try:
+        for i in (0, 1):
+            p = parts[i]
+            pad = '=' * ((4 - len(p) % 4) % 4)
+            base64.urlsafe_b64decode((p + pad).encode("utf-8"))
+        return True
+    except Exception:
+        return False
+
+
+def _extract_user_id_from_jwt(token: str) -> Optional[str]:
+    try:
+        parts = token.split(".")
+        if len(parts) != 3:
+            return None
+        payload_b64 = parts[1]
+        pad = '=' * ((4 - len(payload_b64) % 4) % 4)
+        payload_json = base64.urlsafe_b64decode((payload_b64 + pad).encode("utf-8")).decode("utf-8")
+        payload = json.loads(payload_json)
+        uid = payload.get("user_id") or payload.get("sub")
+        return uid if isinstance(uid, str) and uid else None
+    except Exception:
+        return None
 
 
 if __name__ == "__main__":
