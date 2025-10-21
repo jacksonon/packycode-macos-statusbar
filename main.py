@@ -2,11 +2,18 @@ import datetime
 import calendar
 import base64
 import math
+import re
 import json
 import os
 import threading
 import time
 import webbrowser
+import tempfile
+import zipfile
+import shutil
+import subprocess
+import plistlib
+import hashlib
 from typing import Any, Dict, Optional, Tuple
 
 import requests
@@ -19,8 +26,6 @@ import rumps
 
 CONFIG_DIR = os.path.join(os.path.expanduser("~"), ".packycode")
 CONFIG_FILE = os.path.join(CONFIG_DIR, "config.json")
-# 应用版本号（同时与 setup.py 保持一致）
-APP_VERSION = "0.3.0"
 
 DEFAULT_CONFIG = {
     "account_version": "shared",  # shared | private | codex_shared
@@ -32,6 +37,10 @@ DEFAULT_CONFIG = {
     "title_include_requests": False,
     # 自定义模板占位符：{d_pct} {m_pct} {d_spent} {d_limit} {m_spent} {m_limit} {bal} {d_req}
     "title_custom": "D {d_pct}% | M {m_pct}%",
+    # GitHub 更新仓库（owner/repo），用于“检查/在线更新”，为空则提示未配置
+    "update_repo": "",
+    # 期望的 Apple TeamIdentifier（可选，用于强校验签名）
+    "update_expected_team_id": "",
 }
 
 # 参考 packycode-cost/api/config.ts
@@ -132,6 +141,50 @@ def now_str() -> str:
     return datetime.datetime.now().strftime("%H:%M:%S")
 
 
+def get_app_version() -> str:
+    # 1) 打包环境：从 Info.plist 读取 CFBundleShortVersionString/CFBundleVersion
+    try:
+        rp = os.environ.get("RESOURCEPATH")
+        if rp:
+            plist_path = os.path.join(os.path.dirname(rp), "Info.plist")
+            if os.path.exists(plist_path):
+                with open(plist_path, "rb") as f:
+                    pl = plistlib.load(f)
+                v = pl.get("CFBundleShortVersionString") or pl.get("CFBundleVersion")
+                if isinstance(v, (str, int, float)):
+                    return str(v)
+    except Exception:
+        pass
+    # 2) 源码环境：从 VERSION 文件读取
+    try:
+        vf = os.path.join(os.path.dirname(__file__), "VERSION")
+        if os.path.exists(vf):
+            with open(vf, "r", encoding="utf-8") as f:
+                return f.read().strip()
+    except Exception:
+        pass
+    # 3) 兜底：尝试从 setup.py 正则提取
+    try:
+        sp = os.path.join(os.path.dirname(__file__), "setup.py")
+        if os.path.exists(sp):
+            with open(sp, "r", encoding="utf-8") as f:
+                s = f.read()
+            m = re.search(r"version\s*=\s*['\"]([^'\"]+)['\"]", s)
+            if m:
+                return m.group(1)
+    except Exception:
+        pass
+    return "0.0.0"
+
+
+def _sha256_file(path: str) -> str:
+    h = hashlib.sha256()
+    with open(path, 'rb') as f:
+        for chunk in iter(lambda: f.read(8192), b''):
+            h.update(chunk)
+    return h.hexdigest()
+
+
 def find_icon() -> Optional[str]:
     for p in ICON_CANDIDATES:
         # 允许相对路径存在 ..
@@ -195,7 +248,8 @@ class PackycodeStatusApp(rumps.App):
         self.info_token_exp.set_callback(None)
 
         # 版本信息（底部显示）
-        self.info_version = rumps.MenuItem(f"版本：{APP_VERSION}")
+        self._version = get_app_version()
+        self.info_version = rumps.MenuItem(f"版本：{self._version}")
         self.info_version.set_callback(None)
 
         # 账号类型子菜单
@@ -237,6 +291,8 @@ class PackycodeStatusApp(rumps.App):
             rumps.MenuItem("隐藏/展示", callback=self.toggle_hidden),
             rumps.MenuItem("打开控制台", callback=self.open_dashboard),
             rumps.MenuItem("延迟监控", callback=self.open_latency_monitor),
+            rumps.MenuItem("检查更新", callback=self.check_update_now),
+            rumps.MenuItem("在线更新", callback=self.update_online_now),
             {"推广": self.menu_affiliates},
             None,
             self.info_version,
@@ -282,6 +338,8 @@ class PackycodeStatusApp(rumps.App):
             rumps.MenuItem("隐藏/展示", callback=self.toggle_hidden),
             rumps.MenuItem("打开控制台", callback=self.open_dashboard),
             rumps.MenuItem("延迟监控", callback=self.open_latency_monitor),
+            rumps.MenuItem("检查更新", callback=self.check_update_now),
+            rumps.MenuItem("在线更新", callback=self.update_online_now),
             {"推广": self.menu_affiliates},
             None,
             self.info_version,
@@ -350,6 +408,289 @@ class PackycodeStatusApp(rumps.App):
 
     def open_affiliate_codex(self, _: Optional[rumps.MenuItem] = None):
         webbrowser.open("https://codex.packycode.com/?aff=prr4jxm7")
+
+    # ------------- 更新检测 -------------
+    def _parse_version_tuple(self, v: str) -> Tuple[int, int, int]:
+        try:
+            v = (v or "").strip()
+            v = v.lstrip("vV")
+            nums = re.findall(r"\d+", v)
+            major = int(nums[0]) if len(nums) > 0 else 0
+            minor = int(nums[1]) if len(nums) > 1 else 0
+            patch = int(nums[2]) if len(nums) > 2 else 0
+            return (major, minor, patch)
+        except Exception:
+            return (0, 0, 0)
+
+    def _compare_versions(self, a: str, b: str) -> int:
+        ta = self._parse_version_tuple(a)
+        tb = self._parse_version_tuple(b)
+        return (ta > tb) - (ta < tb)
+
+    def check_update_now(self, _: Optional[rumps.MenuItem] = None):
+        repo = (self._cfg.get("update_repo") or "").strip()
+        if not repo or "/" not in repo:
+            rumps.alert(
+                title="检查更新",
+                message=(
+                    "未配置更新仓库。请在 ~/.packycode/config.json 中设置 update_repo 为 \"owner/repo\"。\n"
+                    "例如：\"packycode/packycode\""
+                ),
+            )
+            return
+
+        api = f"https://api.github.com/repos/{repo}/releases/latest"
+        try:
+            headers = {
+                "Accept": "application/vnd.github+json",
+                "User-Agent": "PackyCode-StatusBar/1.0",
+            }
+            resp = requests.get(api, headers=headers, timeout=10)
+            if resp.status_code >= 400:
+                raise RuntimeError(f"HTTP {resp.status_code}")
+            data = resp.json()
+            tag = (data.get("tag_name") or "").strip()
+            html_url = (data.get("html_url") or f"https://github.com/{repo}/releases").strip()
+            if not tag:
+                raise RuntimeError("响应缺少 tag_name")
+
+            cmp = self._compare_versions(tag, self._version)
+            if cmp > 0:
+                msg = f"发现新版本：{tag}\n当前版本：{self._version}\n是否前往发布页下载？"
+                win = rumps.Window(title="发现新版本", message=msg, default_text="", ok="前往", cancel="取消")
+                res = win.run()
+                if res.clicked:
+                    webbrowser.open(html_url)
+            else:
+                rumps.alert(title="检查更新", message="当前已是最新版本。")
+        except Exception as e:
+            rumps.alert(title="检查更新失败", message=str(e))
+
+    # ------------- 在线更新（下载并替换 .app） -------------
+    def _latest_release_asset(self, repo: str) -> Optional[Tuple[str, str, str, Optional[str]]]:
+        """返回 (tag, html_url, asset_zip_url, sha256_url|None)"""
+        api = f"https://api.github.com/repos/{repo}/releases/latest"
+        headers = {
+            "Accept": "application/vnd.github+json",
+            "User-Agent": "PackyCode-StatusBar/1.0",
+        }
+        resp = requests.get(api, headers=headers, timeout=10)
+        if resp.status_code >= 400:
+            return None
+        data = resp.json()
+        tag = (data.get("tag_name") or "").strip()
+        html_url = (data.get("html_url") or f"https://github.com/{repo}/releases").strip()
+        assets = data.get("assets") or []
+        if not tag or not isinstance(assets, list):
+            return None
+        cand = None
+        sha = None
+        for a in assets:
+            try:
+                name = (a.get("name") or "").lower()
+                url = a.get("browser_download_url")
+                if name.endswith(".zip") and ("mac" in name or "macos" in name or "osx" in name):
+                    cand = url
+                    break
+            except Exception:
+                pass
+        if not cand:
+            for a in assets:
+                try:
+                    name = (a.get("name") or "").lower()
+                    url = a.get("browser_download_url")
+                    if name.endswith(".zip"):
+                        cand = url
+                        break
+                except Exception:
+                    pass
+        # 寻找 sha256 文件
+        for a in assets:
+            try:
+                name = (a.get("name") or "").lower()
+                url = a.get("browser_download_url")
+                if name.endswith(".sha256") or name.endswith(".sha256sum") or name.endswith("sha256.txt"):
+                    sha = url
+                    break
+            except Exception:
+                pass
+        if not cand:
+            return None
+        return (tag, html_url, cand, sha)
+
+    def _current_app_bundle(self) -> Optional[str]:
+        rp = os.environ.get("RESOURCEPATH")
+        if not rp:
+            return None
+        app_path = os.path.abspath(os.path.join(rp, os.pardir, os.pardir))
+        if app_path.endswith(".app") and os.path.isdir(app_path):
+            return app_path
+        return None
+
+    def update_online_now(self, _: Optional[rumps.MenuItem] = None):
+        repo = (self._cfg.get("update_repo") or "").strip()
+        if not repo or "/" not in repo:
+            rumps.alert(
+                title="在线更新",
+                message=("未配置更新仓库。请在 ~/.packycode/config.json 设置 update_repo 为 \"owner/repo\"。"),
+            )
+            return
+        try:
+            latest = self._latest_release_asset(repo)
+            if not latest:
+                rumps.alert(title="在线更新", message="未找到可下载的发行包，请前往发布页手动下载。")
+                return
+            tag, html_url, download_url, sha_url = latest
+            cmp = self._compare_versions(tag, self._version)
+            if cmp <= 0:
+                proceed = rumps.Window(
+                    title="在线更新",
+                    message=f"当前已是最新版本（{self._version}）。是否仍然重新安装？",
+                    ok="继续",
+                    cancel="取消",
+                ).run()
+                if not proceed.clicked:
+                    return
+            tmp_dir = tempfile.mkdtemp(prefix="packycode-update-")
+            zip_path = os.path.join(tmp_dir, "update.zip")
+            with requests.get(download_url, stream=True, timeout=30) as r:
+                if r.status_code >= 400:
+                    raise RuntimeError(f"下载失败: HTTP {r.status_code}")
+                with open(zip_path, "wb") as f:
+                    for chunk in r.iter_content(chunk_size=8192):
+                        if chunk:
+                            f.write(chunk)
+            # SHA256 校验（若提供校验文件）
+            if sha_url:
+                try:
+                    resp = requests.get(sha_url, timeout=10)
+                    if resp.status_code < 400:
+                        text = resp.text.strip()
+                        # 提取 64 位 hex
+                        m = re.search(r"([a-fA-F0-9]{64})", text)
+                        if m:
+                            expected = m.group(1).lower()
+                            actual = _sha256_file(zip_path)
+                            if expected != actual:
+                                raise RuntimeError("校验失败：SHA256 不匹配")
+                except Exception as e:
+                    rumps.alert(title="在线更新", message=f"校验失败或无法获取校验文件：{e}")
+                    return
+            extract_dir = os.path.join(tmp_dir, "unzipped")
+            os.makedirs(extract_dir, exist_ok=True)
+            with zipfile.ZipFile(zip_path, 'r') as zf:
+                zf.extractall(extract_dir)
+            new_app = None
+            for root, dirs, files in os.walk(extract_dir):
+                for d in dirs:
+                    if d.endswith('.app'):
+                        new_app = os.path.join(root, d)
+                        break
+                if new_app:
+                    break
+            if not new_app:
+                rumps.alert(title="在线更新", message="压缩包内未找到 .app 文件。")
+                return
+
+            target_app = self._current_app_bundle()
+            if not target_app:
+                # 源码运行，打开解压目录供手动替换
+                rumps.notification(title="在线更新", subtitle="下载完成", message="已在 Finder 打开，请手动替换应用。")
+                subprocess.Popen(["open", extract_dir])
+                return
+
+            # 读取 bundle id 并校验与当前一致
+            def _bundle_id(app: str) -> Optional[str]:
+                try:
+                    ip = os.path.join(app, 'Contents', 'Info.plist')
+                    if os.path.exists(ip):
+                        with open(ip, 'rb') as f:
+                            pl = plistlib.load(f)
+                        bid = pl.get('CFBundleIdentifier')
+                        return str(bid) if bid else None
+                except Exception:
+                    return None
+                return None
+
+            cur_bid = _bundle_id(target_app)
+            new_bid = _bundle_id(new_app)
+            if cur_bid and new_bid and cur_bid != new_bid:
+                rumps.alert(title="在线更新", message=f"包标识不一致：当前 {cur_bid}，新包 {new_bid}。已终止。")
+                return
+
+            # 签名校验：codesign/spctl 与 TeamIdentifier（如配置）
+            def _run(cmd: list) -> Tuple[int, str, str]:
+                try:
+                    p = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+                    return p.returncode, p.stdout, p.stderr
+                except Exception as e:
+                    return 1, '', str(e)
+
+            # codesign --verify
+            rc1, out1, err1 = _run(["/usr/bin/codesign", "--verify", "--deep", "--strict", "--verbose=2", new_app])
+            # spctl --assess
+            rc2, out2, err2 = _run(["/usr/sbin/spctl", "--assess", "--type", "execute", "--verbose", new_app])
+
+            expected_team = (self._cfg.get("update_expected_team_id") or "").strip()
+            team_ok = True
+            if expected_team:
+                rc3, _o3, e3 = _run(["/usr/bin/codesign", "-dv", "--verbose=4", new_app])
+                tid = None
+                if e3:
+                    m = re.search(r"TeamIdentifier=([A-Z0-9]+)", e3)
+                    if m:
+                        tid = m.group(1)
+                team_ok = (tid == expected_team)
+
+            if expected_team:
+                if not team_ok or rc1 != 0:
+                    rumps.alert(title="在线更新", message="签名校验失败（TeamIdentifier/CodeSign 不匹配）。已终止。")
+                    return
+            else:
+                # 无强制 team，若校验失败，给出确认提示
+                if rc1 != 0 or rc2 != 0:
+                    cont = rumps.Window(
+                        title="在线更新",
+                        message="签名未通过或未公证，可能不安全。是否继续安装？",
+                        ok="继续",
+                        cancel="取消",
+                    ).run()
+                    if not cont.clicked:
+                        return
+
+            script_path = os.path.join(tmp_dir, "install.sh")
+            script = f"""#!/bin/bash
+set -euo pipefail
+NEW_APP=\"{new_app}\"
+TARGET_APP=\"{target_app}\"
+for i in {{1..60}}; do
+  if ! pgrep -f \"{os.path.basename(target_app)}\" >/dev/null 2>&1; then
+    break
+  fi
+  sleep 1
+done
+rm -rf \"$TARGET_APP\"
+ditto \"$NEW_APP\" \"$TARGET_APP\"
+open \"$TARGET_APP\"
+"""
+            with open(script_path, "w", encoding="utf-8") as f:
+                f.write(script)
+            os.chmod(script_path, 0o755)
+
+            res = rumps.Window(
+                title="在线更新",
+                message="更新包已下载，是否立即替换并重启？",
+                ok="替换并重启",
+                cancel="稍后",
+            ).run()
+            if not res.clicked:
+                subprocess.Popen(["open", extract_dir])
+                return
+
+            subprocess.Popen(["bash", script_path])
+            rumps.quit_application()
+        except Exception as e:
+            rumps.alert(title="在线更新失败", message=str(e))
 
     # ------------- 标题格式相关 -------------
     def _update_title_format_checkmarks(self):

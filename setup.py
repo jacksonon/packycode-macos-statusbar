@@ -8,6 +8,15 @@ Usage:
 from setuptools import setup
 import os
 
+BASE_DIR = os.path.dirname(__file__)
+
+def read_version():
+    vf = os.path.join(BASE_DIR, "VERSION")
+    if os.path.exists(vf):
+        with open(vf, "r", encoding="utf-8") as f:
+            return f.read().strip()
+    return "0.0.0"
+
 APP = ["main.py"]
 APP_NAME = "PackyCode"
 
@@ -50,7 +59,7 @@ setup(
     app=APP,
     name=APP_NAME,
     author="packy",
-    version="0.3.0",
+    version=read_version(),
     options={"py2app": OPTIONS},
     setup_requires=["py2app"],
     install_requires=["rumps", "requests"],
