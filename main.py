@@ -26,6 +26,7 @@ import rumps
 
 CONFIG_DIR = os.path.join(os.path.expanduser("~"), ".packycode")
 CONFIG_FILE = os.path.join(CONFIG_DIR, "config.json")
+DEFAULT_UPDATE_REPO = "jacksonon/packycode-macos-statusbar"
 
 DEFAULT_CONFIG = {
     "account_version": "shared",  # shared | private | codex_shared
@@ -37,8 +38,6 @@ DEFAULT_CONFIG = {
     "title_include_requests": False,
     # 自定义模板占位符：{d_pct} {m_pct} {d_spent} {d_limit} {m_spent} {m_limit} {bal} {d_req}
     "title_custom": "D {d_pct}% | M {m_pct}%",
-    # GitHub 更新仓库（owner/repo），用于“检查/在线更新”，为空则提示未配置
-    "update_repo": "",
     # 期望的 Apple TeamIdentifier（可选，用于强校验签名）
     "update_expected_team_id": "",
 }
@@ -427,17 +426,8 @@ class PackycodeStatusApp(rumps.App):
         tb = self._parse_version_tuple(b)
         return (ta > tb) - (ta < tb)
 
-    def check_update_now(self, _: Optional[rumps.MenuItem] = None):
-        repo = (self._cfg.get("update_repo") or "").strip()
-        if not repo or "/" not in repo:
-            rumps.alert(
-                title="检查更新",
-                message=(
-                    "未配置更新仓库。请在 ~/.packycode/config.json 中设置 update_repo 为 \"owner/repo\"。\n"
-                    "例如：\"packycode/packycode\""
-                ),
-            )
-            return
+def check_update_now(self, _: Optional[rumps.MenuItem] = None):
+    repo = DEFAULT_UPDATE_REPO
 
         api = f"https://api.github.com/repos/{repo}/releases/latest"
         try:
@@ -528,13 +518,7 @@ class PackycodeStatusApp(rumps.App):
         return None
 
     def update_online_now(self, _: Optional[rumps.MenuItem] = None):
-        repo = (self._cfg.get("update_repo") or "").strip()
-        if not repo or "/" not in repo:
-            rumps.alert(
-                title="在线更新",
-                message=("未配置更新仓库。请在 ~/.packycode/config.json 设置 update_repo 为 \"owner/repo\"。"),
-            )
-            return
+        repo = DEFAULT_UPDATE_REPO
         try:
             latest = self._latest_release_asset(repo)
             if not latest:

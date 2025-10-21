@@ -20,8 +20,8 @@
   - 设置 Token（支持 JWT 或 API Key，均使用 Bearer 头）
   - 标题格式：百分比 或 自定义模板
   - 刷新/隐藏标题/打开控制台/延迟监控（测速：https://packy.te.sb/）/推广（PackyCode / Codex）
-  - 检查更新：对比 GitHub 最新 release 的 tag 与本地版本
-  - 在线更新：直接下载最新 release 的 macOS 压缩包并替换 .app 后重启
+  - 检查更新：对比 GitHub 最新 release 的 tag 与本地版本（固定仓库：`jacksonon/packycode-macos-statusbar`）
+  - 在线更新：直接下载最新 release 的 macOS 压缩包并替换 .app 后重启（固定仓库，不可修改）
 
 ## 运行
 ```bash
@@ -82,17 +82,16 @@ python3 setup.py py2app
   "poll_interval": 180,
   "title_mode": "percent | custom",
   "title_custom": "D {d_pct}% | M {m_pct}%",
-  "update_repo": "owner/repo",
   "update_expected_team_id": ""
 }
 ```
 
 检查更新：
-- 在 `update_repo` 填写你的 GitHub 仓库 `owner/repo`（例如 `packycode/packycode`）
+- 固定使用 `jacksonon/packycode-macos-statusbar`
 - 菜单中点击“检查更新”，会调用 GitHub Releases API 比较最新 `tag_name` 与当前版本，若有新版本会提示并可跳转至发布页下载
 
 在线更新：
-- 同样需要配置 `update_repo`
+- 固定使用 `jacksonon/packycode-macos-statusbar`
 - 点击“在线更新”，会下载最新 release 的 zip，解压并自动替换本机正在使用的 `.app`（通过临时脚本在退出后替换），随后自动重启应用；若当前以源码方式运行，会打开 Finder 供你手动拖拽替换。
  - 安全校验：
    - 若 Release 同时提供 `.sha256`/`.sha256sum`/`sha256.txt`，会自动核对压缩包 SHA256，不匹配则中止
