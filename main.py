@@ -19,6 +19,8 @@ import rumps
 
 CONFIG_DIR = os.path.join(os.path.expanduser("~"), ".packycode")
 CONFIG_FILE = os.path.join(CONFIG_DIR, "config.json")
+# 应用版本号（同时与 setup.py 保持一致）
+APP_VERSION = "0.3.0"
 
 DEFAULT_CONFIG = {
     "account_version": "shared",  # shared | private | codex_shared
@@ -192,6 +194,10 @@ class PackycodeStatusApp(rumps.App):
         self.info_token_exp = rumps.MenuItem("Token：-")
         self.info_token_exp.set_callback(None)
 
+        # 版本信息（底部显示）
+        self.info_version = rumps.MenuItem(f"版本：{APP_VERSION}")
+        self.info_version.set_callback(None)
+
         # 账号类型子菜单
         self.menu_account = {
             "共享（公交车）": rumps.MenuItem("共享（公交车）", callback=self._set_shared),
@@ -232,6 +238,8 @@ class PackycodeStatusApp(rumps.App):
             rumps.MenuItem("打开控制台", callback=self.open_dashboard),
             rumps.MenuItem("延迟监控", callback=self.open_latency_monitor),
             {"推广": self.menu_affiliates},
+            None,
+            self.info_version,
         ]
 
         # 初始选中账号类型
@@ -274,7 +282,9 @@ class PackycodeStatusApp(rumps.App):
             rumps.MenuItem("隐藏/展示", callback=self.toggle_hidden),
             rumps.MenuItem("打开控制台", callback=self.open_dashboard),
             rumps.MenuItem("延迟监控", callback=self.open_latency_monitor),
-            {"推广链接": self.menu_affiliates},
+            {"推广": self.menu_affiliates},
+            None,
+            self.info_version,
         ])
         self.menu = items
         self._renew_shown = show_renew
