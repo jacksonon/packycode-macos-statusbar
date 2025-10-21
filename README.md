@@ -1,5 +1,7 @@
 # PackyCode 状态栏应用（macOS）
 
+![product](https://github.com/jacksonon/packycode-macos-statusbar/blob/main/product.png)
+
 一个用 Python 编写的 macOS 状态栏应用，用于展示 PackyCode 额度/预算使用情况。
 
 - 参考实现：`GPO/`（macOS 状态栏应用框架，rumps，非构建依赖）
