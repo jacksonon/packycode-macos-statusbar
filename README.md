@@ -12,11 +12,14 @@
   - 公交车（shared）：显示账户余额 `$12.34`
   - 滴滴车（private）/ Codex 公交车（codex_shared）：显示每日/每月消费与预算进度 `D 1.2/20 | M 15.0/300`
 - 菜单展示详细数据：每日/每月已用、限额、剩余、上次更新时间
+  - 新增：显示周期与续费提醒
+    - 周期：优先使用订阅接口 `current_period_start/current_period_end`（`/api/backend/subscriptions`），其次使用 `plan_expires_at`；若都无则按自然月，展示 `MM.DD-MM.DD`
+    - 续费提醒：到期前 3 天显示“即将到期/建议续费”，平时不展示
 - 菜单内设置：
   - 账号类型切换：共享（shared）/ 滴滴车（private）/ Codex（codex_shared）
   - 设置 Token（支持 JWT 或 API Key，均使用 Bearer 头）
   - 标题格式：百分比 或 自定义模板
-  - 刷新/隐藏标题/打开控制台
+  - 刷新/隐藏标题/打开控制台/延迟监控（测速：https://packy.te.sb/）/推广（PackyCode / Codex）
 
 ## 运行
 ```bash

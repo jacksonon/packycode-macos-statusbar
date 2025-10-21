@@ -1,4 +1,5 @@
 import datetime
+import calendar
 import base64
 import math
 import json
@@ -52,6 +53,7 @@ ACCOUNT_ENV = {
 
 USER_INFO_PATH = "/api/backend/users/info"
 USAGE_STATS_PATH_TMPL = "/api/backend/users/{user_id}/usage-stats?days=30"
+SUBSCRIPTIONS_PATH = "/api/backend/subscriptions?page=1&per_page=5"
 
 # 候选图标
 def _resource_path_candidate(filename: str) -> Optional[str]:
@@ -172,6 +174,14 @@ class PackycodeStatusApp(rumps.App):
         self.info_monthly = rumps.MenuItem("每月：-/- (剩余 -)")
         self.info_monthly.set_callback(None)
 
+        # 套餐周期与续费提醒
+        self.info_cycle = rumps.MenuItem("周期：-")
+        self.info_cycle.set_callback(None)
+
+        self.info_renew = rumps.MenuItem("续费提醒：-")
+        self.info_renew.set_callback(None)
+        self._renew_shown = False
+
         self.info_balance = rumps.MenuItem("余额：-")
         self.info_balance.set_callback(None)
 
@@ -196,6 +206,12 @@ class PackycodeStatusApp(rumps.App):
             "显示请求次数": rumps.MenuItem("显示请求次数", callback=self._toggle_title_requests),
         }
 
+        # 推广链接子菜单（使用列表，避免多余的嵌套层级）
+        self.menu_affiliates = [
+            rumps.MenuItem("PackyCode", callback=self.open_affiliate_packycode),
+            rumps.MenuItem("Codex", callback=self.open_affiliate_codex),
+        ]
+
         # 完整菜单
         self.menu = [
             self.info_title,
@@ -203,6 +219,7 @@ class PackycodeStatusApp(rumps.App):
             self.info_requests,
             self.info_usage_span,
             self.info_monthly,
+            self.info_cycle,
             self.info_balance,
             self.info_token_exp,
             self.info_last,
@@ -213,6 +230,8 @@ class PackycodeStatusApp(rumps.App):
             rumps.MenuItem("设置 Token...", callback=self.set_token),
             rumps.MenuItem("隐藏/展示", callback=self.toggle_hidden),
             rumps.MenuItem("打开控制台", callback=self.open_dashboard),
+            rumps.MenuItem("延迟监控", callback=self.open_latency_monitor),
+            {"推广": self.menu_affiliates},
         ]
 
         # 初始选中账号类型
@@ -231,6 +250,34 @@ class PackycodeStatusApp(rumps.App):
             self._refresh(force=True)
         except Exception:
             pass
+
+    def _rebuild_menu(self, show_renew: bool):
+        items = [
+            self.info_title,
+            self.info_daily,
+            self.info_requests,
+            self.info_usage_span,
+            self.info_monthly,
+            self.info_cycle,
+        ]
+        if show_renew:
+            items.append(self.info_renew)
+        items.extend([
+            self.info_balance,
+            self.info_token_exp,
+            self.info_last,
+            None,
+            rumps.MenuItem("刷新", callback=self.refresh_now),
+            {"账号类型": self.menu_account},
+            {"标题格式": self.menu_title_fmt},
+            rumps.MenuItem("设置 Token...", callback=self.set_token),
+            rumps.MenuItem("隐藏/展示", callback=self.toggle_hidden),
+            rumps.MenuItem("打开控制台", callback=self.open_dashboard),
+            rumps.MenuItem("延迟监控", callback=self.open_latency_monitor),
+            {"推广链接": self.menu_affiliates},
+        ])
+        self.menu = items
+        self._renew_shown = show_renew
 
     # ------------- 菜单回调 -------------
     def refresh_now(self, _: Optional[rumps.MenuItem] = None):
@@ -284,6 +331,15 @@ class PackycodeStatusApp(rumps.App):
     def open_dashboard(self, _: Optional[rumps.MenuItem] = None):
         base, dashboard = self._get_base_and_dashboard()
         webbrowser.open(dashboard or base)
+
+    def open_latency_monitor(self, _: Optional[rumps.MenuItem] = None):
+        webbrowser.open("https://packy.te.sb/")
+
+    def open_affiliate_packycode(self, _: Optional[rumps.MenuItem] = None):
+        webbrowser.open("https://www.packycode.com/?aff=prr4jxm7")
+
+    def open_affiliate_codex(self, _: Optional[rumps.MenuItem] = None):
+        webbrowser.open("https://codex.packycode.com/?aff=prr4jxm7")
 
     # ------------- 标题格式相关 -------------
     def _update_title_format_checkmarks(self):
@@ -404,8 +460,13 @@ class PackycodeStatusApp(rumps.App):
             except Exception:
                 usage = None
             self._last_usage = usage
+            # 尝试拉取订阅周期
+            try:
+                sub_period = self._maybe_fetch_subscription_period()
+            except Exception:
+                sub_period = None
             self._last_error = None
-            self._update_ui_from_info(info, usage)
+            self._update_ui_from_info(info, usage, sub_period)
         except Exception as e:
             self._last_error = str(e)
             self._update_ui_error(str(e))
@@ -469,14 +530,71 @@ class PackycodeStatusApp(rumps.App):
         except Exception:
             return None
 
-    def _update_ui_from_info(self, info: Optional[Dict[str, Any]], usage: Optional[Dict[str, Any]]):
+    def _maybe_fetch_subscription_period(self) -> Optional[Tuple[datetime.date, datetime.date]]:
+        """调用订阅接口，返回 (current_period_start_date, current_period_end_date)。
+
+        - 优先选取 status == 'active' 的订阅；若无则取第一条。
+        - 失败或无数据返回 None。
+        """
+        token = (self._cfg.get("token") or "").strip()
+        if not token:
+            return None
+
+        base, _ = self._get_base_and_dashboard()
+        url = f"{base}{SUBSCRIPTIONS_PATH}"
+
+        headers = {
+            "Authorization": f"Bearer {token}",
+            "Accept": "application/json",
+            "User-Agent": "PackyCode-StatusBar/1.0",
+        }
+
+        resp = requests.get(url, headers=headers, timeout=10)
+        if resp.status_code >= 400:
+            return None
+        try:
+            payload = resp.json()
+        except Exception:
+            return None
+
+        items = payload.get("data") if isinstance(payload, dict) else None
+        if not isinstance(items, list) or not items:
+            return None
+
+        selected = None
+        for it in items:
+            if isinstance(it, dict) and it.get("status") == "active":
+                selected = it
+                break
+        if selected is None:
+            selected = items[0] if isinstance(items[0], dict) else None
+        if not isinstance(selected, dict):
+            return None
+
+        try:
+            start_s = (selected.get("current_period_start") or "").replace("Z", "+00:00")
+            end_s = (selected.get("current_period_end") or "").replace("Z", "+00:00")
+            if not start_s or not end_s:
+                return None
+            ds = datetime.datetime.fromisoformat(start_s).date()
+            de = datetime.datetime.fromisoformat(end_s).date()
+            return (ds, de)
+        except Exception:
+            return None
+
+    def _update_ui_from_info(self, info: Optional[Dict[str, Any]], usage: Optional[Dict[str, Any]], sub_period: Optional[Tuple[datetime.date, datetime.date]]):
         if not info:
             self.info_title.title = "状态：无数据"
             self.title = "" if self._cfg.get("hidden") else "无数据"
             self.info_last.title = f"上次更新：{now_str()}"
             self.info_requests.title = "请求次数：-"
             self.info_usage_span.title = "近30日：-"
+            self.info_cycle.title = "周期：-"
+            self.info_renew.title = "续费提醒：-"
             self._update_token_status()
+            # 隐藏续费提醒
+            if getattr(self, "_renew_shown", False):
+                self._rebuild_menu(False)
             return
 
         # 解析字段（参考 packycode-cost UserApiResponse 与转换逻辑）
@@ -534,6 +652,52 @@ class PackycodeStatusApp(rumps.App):
             if monthly_limit > 0
             else f"每月：{monthly_spent:.2f}/- (剩余 -)"
         )
+
+        # 周期与续费提醒（优先使用订阅 current_period_start/end；其次 plan_expires_at；否则按自然月）
+        today = datetime.date.today()
+        exp_str = (info.get("plan_expires_at") or "").strip() if isinstance(info, dict) else ""
+        cycle_start: datetime.date
+        cycle_end: datetime.date
+        if sub_period and isinstance(sub_period, tuple):
+            cycle_start, cycle_end = sub_period
+        elif exp_str:
+            try:
+                iso = exp_str.replace("Z", "+00:00")
+                dt_exp = datetime.datetime.fromisoformat(iso)
+                cycle_end = dt_exp.date()
+                cycle_start = cycle_end.replace(day=1)
+            except Exception:
+                total_days_fallback = calendar.monthrange(today.year, today.month)[1]
+                cycle_start = today.replace(day=1)
+                cycle_end = today.replace(day=total_days_fallback)
+        else:
+            total_days_fallback = calendar.monthrange(today.year, today.month)[1]
+            cycle_start = today.replace(day=1)
+            cycle_end = today.replace(day=total_days_fallback)
+
+        # 基于周期起止计算天数
+        cycle_total_days = (cycle_end - cycle_start).days + 1
+        # 将 today 钳制到周期范围内用于“已用天数”
+        today_clamped = min(max(today, cycle_start), cycle_end)
+        elapsed_days = (today_clamped - cycle_start).days + 1
+        days_left = (cycle_end - today).days + 1  # 含今天，可能为<=0
+
+        start_str = f"{cycle_start.month:02d}.{cycle_start.day:02d}"
+        end_str = f"{cycle_end.month:02d}.{cycle_end.day:02d}"
+        if days_left <= 0:
+            self.info_cycle.title = f"周期：{start_str}-{end_str}（已到期）"
+        else:
+            self.info_cycle.title = f"周期：{start_str}-{end_str}（剩余{days_left}天）"
+
+        # 续费提醒：到期前 3 天显示；其他时间不显示
+        show_renew = days_left <= 3
+        if days_left <= 0:
+            renew_text = "⚠️ 已到期，请尽快续费"
+        elif days_left <= 3:
+            renew_text = f"⚠️ 即将到期（剩余{days_left}天），建议提前续费"
+        else:
+            renew_text = "-"
+        self.info_renew.title = f"续费提醒：{renew_text}"
         if balance is not None:
             self.info_balance.title = f"余额：{fmt_money(balance)}"
         else:
@@ -549,15 +713,23 @@ class PackycodeStatusApp(rumps.App):
             return
 
         self.title = self._make_title(info, usage)
+        # 重建菜单以切换“续费提醒”的可见性
+        if getattr(self, "_renew_shown", False) != show_renew:
+            self._rebuild_menu(show_renew)
 
     def _update_ui_error(self, err: str):
         self.info_title.title = f"状态：错误 - {err}"
         self.info_last.title = f"上次更新：{now_str()}"
         self.info_requests.title = "请求次数：-"
         self.info_usage_span.title = "近30日：-"
+        self.info_cycle.title = "周期：-"
+        self.info_renew.title = "续费提醒：-"
         self._update_token_status()
         if not self._cfg.get("hidden"):
             self.title = "错误"
+        # 隐藏续费提醒
+        if getattr(self, "_renew_shown", False):
+            self._rebuild_menu(False)
 
     # ------------- 标题格式化 -------------
     def _make_title(self, info: Dict[str, Any], usage: Optional[Dict[str, Any]]) -> str:
