@@ -152,6 +152,7 @@ class PackycodeStatusApp(rumps.App):
         self._last_data: Dict[str, Any] = {}
         self._last_error: Optional[str] = None
         self._last_usage: Optional[Dict[str, Any]] = None
+        self._jwt_expired_notified: bool = False
 
         # 信息区（只读）
         self.info_title = rumps.MenuItem("状态：未初始化")
@@ -177,6 +178,10 @@ class PackycodeStatusApp(rumps.App):
         self.info_last = rumps.MenuItem("上次更新：-")
         self.info_last.set_callback(None)
 
+        # Token 到期信息
+        self.info_token_exp = rumps.MenuItem("Token：-")
+        self.info_token_exp.set_callback(None)
+
         # 账号类型子菜单
         self.menu_account = {
             "共享（公交车）": rumps.MenuItem("共享（公交车）", callback=self._set_shared),
@@ -199,6 +204,7 @@ class PackycodeStatusApp(rumps.App):
             self.info_usage_span,
             self.info_monthly,
             self.info_balance,
+            self.info_token_exp,
             self.info_last,
             None,
             rumps.MenuItem("刷新", callback=self.refresh_now),
@@ -255,6 +261,8 @@ class PackycodeStatusApp(rumps.App):
             with self._lock:
                 self._cfg["token"] = token
                 save_config(self._cfg)
+                # 重置过期提醒
+                self._jwt_expired_notified = False
             self._refresh(force=True)
 
     def _set_shared(self, _: Optional[rumps.MenuItem] = None):
@@ -342,6 +350,42 @@ class PackycodeStatusApp(rumps.App):
         account = self._cfg.get("account_version", "shared")
         env = ACCOUNT_ENV.get(account, ACCOUNT_ENV["shared"])  # type: ignore
         return env["base"], env["dashboard"]
+
+    def _update_token_status(self) -> None:
+        """更新菜单中的 Token 到期信息，并在过期后提醒一次。"""
+        try:
+            token = (self._cfg.get("token") or "").strip()
+            if not token or not _is_probable_jwt(token):
+                self.info_token_exp.title = "Token：-"
+                return
+            exp = _extract_exp_from_jwt(token)
+            if not exp:
+                self.info_token_exp.title = "Token：-"
+                return
+            # 本地时间展示
+            dt_local = datetime.datetime.fromtimestamp(exp)
+            remaining = int(exp - time.time())
+            remain_text = _fmt_remaining(remaining)
+            if remaining <= 0:
+                self.info_token_exp.title = f"Token：已过期（{dt_local.strftime('%Y-%m-%d %H:%M')}）"
+                if not self._jwt_expired_notified:
+                    try:
+                        rumps.notification(
+                            title="PackyCode",
+                            subtitle="Token 已过期",
+                            message="请在“设置 Token...”中更换 JWT",
+                        )
+                    except Exception:
+                        pass
+                    self._jwt_expired_notified = True
+            else:
+                self.info_token_exp.title = (
+                    f"Token：{dt_local.strftime('%Y-%m-%d %H:%M')}（{remain_text}）"
+                )
+                # 未过期时允许再次提醒（比如用户换新 Token 后）
+                self._jwt_expired_notified = False
+        except Exception:
+            self.info_token_exp.title = "Token：-"
 
     def _refresh(self, force: bool = False):
         # 避免过于频繁的刷新
@@ -432,6 +476,7 @@ class PackycodeStatusApp(rumps.App):
             self.info_last.title = f"上次更新：{now_str()}"
             self.info_requests.title = "请求次数：-"
             self.info_usage_span.title = "近30日：-"
+            self._update_token_status()
             return
 
         # 解析字段（参考 packycode-cost UserApiResponse 与转换逻辑）
@@ -495,6 +540,8 @@ class PackycodeStatusApp(rumps.App):
             self.info_balance.title = "余额：-"
 
         self.info_last.title = f"上次更新：{now_str()}"
+        # 更新 Token 到期信息与提醒
+        self._update_token_status()
 
         # 状态栏标题（根据设置）
         if self._cfg.get("hidden"):
@@ -508,6 +555,7 @@ class PackycodeStatusApp(rumps.App):
         self.info_last.title = f"上次更新：{now_str()}"
         self.info_requests.title = "请求次数：-"
         self.info_usage_span.title = "近30日：-"
+        self._update_token_status()
         if not self._cfg.get("hidden"):
             self.title = "错误"
 
@@ -606,6 +654,39 @@ def _extract_user_id_from_jwt(token: str) -> Optional[str]:
         return uid if isinstance(uid, str) and uid else None
     except Exception:
         return None
+
+
+def _extract_exp_from_jwt(token: str) -> Optional[int]:
+    try:
+        parts = token.split(".")
+        if len(parts) != 3:
+            return None
+        payload_b64 = parts[1]
+        pad = '=' * ((4 - len(payload_b64) % 4) % 4)
+        payload_json = base64.urlsafe_b64decode((payload_b64 + pad).encode("utf-8")).decode("utf-8")
+        payload = json.loads(payload_json)
+        exp = payload.get("exp")
+        return int(exp) if exp is not None else None
+    except Exception:
+        return None
+
+
+def _fmt_remaining(sec: int) -> str:
+    try:
+        if sec <= 0:
+            return "已过期"
+        days = sec // 86400
+        sec %= 86400
+        hours = sec // 3600
+        sec %= 3600
+        minutes = sec // 60
+        if days > 0:
+            return f"剩余{days}天{hours}小时"
+        if hours > 0:
+            return f"剩余{hours}小时{minutes}分钟"
+        return f"剩余{minutes}分钟"
+    except Exception:
+        return "-"
 
 
 if __name__ == "__main__":
