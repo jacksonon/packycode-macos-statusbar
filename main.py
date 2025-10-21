@@ -426,9 +426,8 @@ class PackycodeStatusApp(rumps.App):
         tb = self._parse_version_tuple(b)
         return (ta > tb) - (ta < tb)
 
-def check_update_now(self, _: Optional[rumps.MenuItem] = None):
-    repo = DEFAULT_UPDATE_REPO
-
+    def check_update_now(self, _: Optional[rumps.MenuItem] = None):
+        repo = DEFAULT_UPDATE_REPO
         api = f"https://api.github.com/repos/{repo}/releases/latest"
         try:
             headers = {
