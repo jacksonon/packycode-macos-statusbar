@@ -21,6 +21,745 @@ import rumps
 
 
 # ---------------------------
+# 语言与本地化
+# ---------------------------
+
+# 支持的语言代码
+LANG_ZH_CN = "zh_CN"
+LANG_EN = "en"
+LANG_ZH_TW = "zh_TW"
+LANG_JA = "ja"
+LANG_KO = "ko"
+LANG_RU = "ru"
+
+_current_language = LANG_ZH_CN
+
+
+def set_current_language(lang: str) -> None:
+    global _current_language
+    if lang in {LANG_ZH_CN, LANG_EN, LANG_ZH_TW, LANG_JA, LANG_KO, LANG_RU}:
+        _current_language = lang
+    else:
+        _current_language = LANG_ZH_CN
+
+
+# 文本字典
+I18N = {
+    # 占位符/片段
+    "version_prefix": {
+        LANG_ZH_CN: "版本：",
+        LANG_EN: "Version: ",
+        LANG_ZH_TW: "版本：",
+        LANG_JA: "バージョン：",
+        LANG_KO: "버전: ",
+        LANG_RU: "Версия: ",
+    },
+    "title_req_label": {
+        LANG_ZH_CN: "请求",
+        LANG_EN: "Req",
+        LANG_ZH_TW: "請求",
+        LANG_JA: "リクエスト",
+        LANG_KO: "요청",
+        LANG_RU: "Запрос",
+    },
+
+    # 顶部信息区（占位）
+    "status_uninitialized": {
+        LANG_ZH_CN: "状态：未初始化",
+        LANG_EN: "Status: Not initialized",
+        LANG_ZH_TW: "狀態：未初始化",
+        LANG_JA: "状態：未初期化",
+        LANG_KO: "상태: 초기화되지 않음",
+        LANG_RU: "Статус: не инициализировано",
+    },
+    "status_ok": {
+        LANG_ZH_CN: "状态：正常",
+        LANG_EN: "Status: OK",
+        LANG_ZH_TW: "狀態：正常",
+        LANG_JA: "状態：正常",
+        LANG_KO: "상태: 정상",
+        LANG_RU: "Статус: ОК",
+    },
+    "daily_placeholder": {
+        LANG_ZH_CN: "每日：-/- (剩余 -)",
+        LANG_EN: "Daily: -/- (left -)",
+        LANG_ZH_TW: "每日：-/- (剩餘 -)",
+        LANG_JA: "日次：-/- (残り -)",
+        LANG_KO: "일일: -/- (잔여 -)",
+        LANG_RU: "День: -/- (осталось -)",
+    },
+    "requests_placeholder": {
+        LANG_ZH_CN: "请求次数：-",
+        LANG_EN: "Requests: -",
+        LANG_ZH_TW: "請求次數：-",
+        LANG_JA: "リクエスト数：-",
+        LANG_KO: "요청 수: -",
+        LANG_RU: "Запросов: -",
+    },
+    "usage_span_placeholder": {
+        LANG_ZH_CN: "近30日：-",
+        LANG_EN: "Last 30 days: -",
+        LANG_ZH_TW: "近30日：-",
+        LANG_JA: "直近30日：-",
+        LANG_KO: "최근 30일: -",
+        LANG_RU: "За 30 дней: -",
+    },
+    "monthly_placeholder": {
+        LANG_ZH_CN: "每月：-/- (剩余 -)",
+        LANG_EN: "Monthly: -/- (left -)",
+        LANG_ZH_TW: "每月：-/- (剩餘 -)",
+        LANG_JA: "月次：-/- (残り -)",
+        LANG_KO: "월간: -/- (잔여 -)",
+        LANG_RU: "Месяц: -/- (осталось -)",
+    },
+    "cycle_placeholder": {
+        LANG_ZH_CN: "周期：-",
+        LANG_EN: "Cycle: -",
+        LANG_ZH_TW: "週期：-",
+        LANG_JA: "サイクル：-",
+        LANG_KO: "주기: -",
+        LANG_RU: "Цикл: -",
+    },
+    "renew_placeholder": {
+        LANG_ZH_CN: "续费提醒：-",
+        LANG_EN: "Renewal: -",
+        LANG_ZH_TW: "續費提醒：-",
+        LANG_JA: "更新通知：-",
+        LANG_KO: "갱신 알림: -",
+        LANG_RU: "Продление: -",
+    },
+    "balance_placeholder": {
+        LANG_ZH_CN: "余额：-",
+        LANG_EN: "Balance: -",
+        LANG_ZH_TW: "餘額：-",
+        LANG_JA: "残高：-",
+        LANG_KO: "잔액: -",
+        LANG_RU: "Баланс: -",
+    },
+    "last_update_placeholder": {
+        LANG_ZH_CN: "上次更新：-",
+        LANG_EN: "Last Update: -",
+        LANG_ZH_TW: "上次更新：-",
+        LANG_JA: "最終更新：-",
+        LANG_KO: "마지막 업데이트: -",
+        LANG_RU: "Последнее обновление: -",
+    },
+    "token_placeholder": {
+        LANG_ZH_CN: "Token：-",
+        LANG_EN: "Token: -",
+        LANG_ZH_TW: "Token：-",
+        LANG_JA: "トークン：-",
+        LANG_KO: "토큰: -",
+        LANG_RU: "Токен: -",
+    },
+
+    # 菜单分组/项
+    "menu_refresh": {
+        LANG_ZH_CN: "刷新",
+        LANG_EN: "Refresh",
+        LANG_ZH_TW: "刷新",
+        LANG_JA: "更新",
+        LANG_KO: "새로고침",
+        LANG_RU: "Обновить",
+    },
+    "menu_account": {
+        LANG_ZH_CN: "账号类型",
+        LANG_EN: "Account",
+        LANG_ZH_TW: "帳號類型",
+        LANG_JA: "アカウント種別",
+        LANG_KO: "계정 유형",
+        LANG_RU: "Аккаунт",
+    },
+    "menu_title_format": {
+        LANG_ZH_CN: "标题格式",
+        LANG_EN: "Title Format",
+        LANG_ZH_TW: "標題格式",
+        LANG_JA: "タイトル形式",
+        LANG_KO: "제목 형식",
+        LANG_RU: "Формат заголовка",
+    },
+    "menu_set_token": {
+        LANG_ZH_CN: "设置 Token...",
+        LANG_EN: "Set Token...",
+        LANG_ZH_TW: "設定 Token...",
+        LANG_JA: "トークンを設定...",
+        LANG_KO: "토큰 설정...",
+        LANG_RU: "Указать токен...",
+    },
+    "menu_toggle_hidden": {
+        LANG_ZH_CN: "隐藏/展示",
+        LANG_EN: "Hide/Show",
+        LANG_ZH_TW: "隱藏/顯示",
+        LANG_JA: "非表示/表示",
+        LANG_KO: "숨김/표시",
+        LANG_RU: "Скрыть/Показать",
+    },
+    "menu_open_dashboard": {
+        LANG_ZH_CN: "打开控制台",
+        LANG_EN: "Open Dashboard",
+        LANG_ZH_TW: "打開控制台",
+        LANG_JA: "ダッシュボードを開く",
+        LANG_KO: "대시보드 열기",
+        LANG_RU: "Открыть панель",
+    },
+    "menu_latency_monitor": {
+        LANG_ZH_CN: "延迟监控",
+        LANG_EN: "Latency Monitor",
+        LANG_ZH_TW: "延遲監控",
+        LANG_JA: "レイテンシ監視",
+        LANG_KO: "지연 모니터",
+        LANG_RU: "Мониторинг задержки",
+    },
+    "menu_check_update": {
+        LANG_ZH_CN: "检查更新",
+        LANG_EN: "Check Updates",
+        LANG_ZH_TW: "檢查更新",
+        LANG_JA: "更新を確認",
+        LANG_KO: "업데이트 확인",
+        LANG_RU: "Проверить обновления",
+    },
+    "menu_update_online": {
+        LANG_ZH_CN: "在线更新",
+        LANG_EN: "Online Update",
+        LANG_ZH_TW: "線上更新",
+        LANG_JA: "オンライン更新",
+        LANG_KO: "온라인 업데이트",
+        LANG_RU: "Онлайн-обновление",
+    },
+    "menu_affiliates": {
+        LANG_ZH_CN: "推广",
+        LANG_EN: "Affiliates",
+        LANG_ZH_TW: "推廣",
+        LANG_JA: "アフィリエイト",
+        LANG_KO: "추천",
+        LANG_RU: "Партнёры",
+    },
+    "menu_language": {
+        LANG_ZH_CN: "语言",
+        LANG_EN: "Language",
+        LANG_ZH_TW: "語言",
+        LANG_JA: "言語",
+        LANG_KO: "언어",
+        LANG_RU: "Язык",
+    },
+    "account_shared": {
+        LANG_ZH_CN: "共享（公交车）",
+        LANG_EN: "Shared (Bus)",
+        LANG_ZH_TW: "共享（公車）",
+        LANG_JA: "共有（バス）",
+        LANG_KO: "공유(버스)",
+        LANG_RU: "Общий (Bus)",
+    },
+    "account_private": {
+        LANG_ZH_CN: "滴滴车（私有）",
+        LANG_EN: "Private",
+        LANG_ZH_TW: "滴滴車（私有）",
+        LANG_JA: "DiDi（プライベート）",
+        LANG_KO: "DiDi(개인)",
+        LANG_RU: "Частный",
+    },
+    "account_codex": {
+        LANG_ZH_CN: "Codex 公交车",
+        LANG_EN: "Codex Shared",
+        LANG_ZH_TW: "Codex 公車",
+        LANG_JA: "Codex 共有",
+        LANG_KO: "Codex 공유",
+        LANG_RU: "Codex общий",
+    },
+    "titlefmt_percent": {
+        LANG_ZH_CN: "百分比",
+        LANG_EN: "Percent",
+        LANG_ZH_TW: "百分比",
+        LANG_JA: "パーセント",
+        LANG_KO: "퍼센트",
+        LANG_RU: "Проценты",
+    },
+    "titlefmt_custom": {
+        LANG_ZH_CN: "自定义...",
+        LANG_EN: "Custom...",
+        LANG_ZH_TW: "自訂...",
+        LANG_JA: "カスタム...",
+        LANG_KO: "사용자 지정...",
+        LANG_RU: "Пользовательский...",
+    },
+    "titlefmt_show_requests": {
+        LANG_ZH_CN: "显示请求次数",
+        LANG_EN: "Show Requests",
+        LANG_ZH_TW: "顯示請求次數",
+        LANG_JA: "リクエスト数を表示",
+        LANG_KO: "요청 수 표시",
+        LANG_RU: "Показывать запросы",
+    },
+
+    # 动态信息模板
+    "status_no_data": {
+        LANG_ZH_CN: "状态：无数据",
+        LANG_EN: "Status: No data",
+        LANG_ZH_TW: "狀態：無資料",
+        LANG_JA: "状態：データなし",
+        LANG_KO: "상태: 데이터 없음",
+        LANG_RU: "Статус: нет данных",
+    },
+    "title_no_data": {
+        LANG_ZH_CN: "无数据",
+        LANG_EN: "No data",
+        LANG_ZH_TW: "無資料",
+        LANG_JA: "データなし",
+        LANG_KO: "데이터 없음",
+        LANG_RU: "Нет данных",
+    },
+    "status_error_prefix": {
+        LANG_ZH_CN: "状态：错误 - {err}",
+        LANG_EN: "Status: Error - {err}",
+        LANG_ZH_TW: "狀態：錯誤 - {err}",
+        LANG_JA: "状態：エラー - {err}",
+        LANG_KO: "상태: 오류 - {err}",
+        LANG_RU: "Статус: ошибка - {err}",
+    },
+    "title_error": {
+        LANG_ZH_CN: "错误",
+        LANG_EN: "Error",
+        LANG_ZH_TW: "錯誤",
+        LANG_JA: "エラー",
+        LANG_KO: "오류",
+        LANG_RU: "Ошибка",
+    },
+    "last_update_prefix": {
+        LANG_ZH_CN: "上次更新：{time}",
+        LANG_EN: "Last Update: {time}",
+        LANG_ZH_TW: "上次更新：{time}",
+        LANG_JA: "最終更新：{time}",
+        LANG_KO: "마지막 업데이트: {time}",
+        LANG_RU: "Последнее обновление: {time}",
+    },
+    "requests_prefix": {
+        LANG_ZH_CN: "请求次数：{val}",
+        LANG_EN: "Requests: {val}",
+        LANG_ZH_TW: "請求次數：{val}",
+        LANG_JA: "リクエスト数：{val}",
+        LANG_KO: "요청 수: {val}",
+        LANG_RU: "Запросов: {val}",
+    },
+    "usage_span_prefix": {
+        LANG_ZH_CN: "近30日：{val}",
+        LANG_EN: "Last 30 days: {val}",
+        LANG_ZH_TW: "近30日：{val}",
+        LANG_JA: "直近30日：{val}",
+        LANG_KO: "최근 30일: {val}",
+        LANG_RU: "За 30 дней: {val}",
+    },
+    "usage_span_desc": {
+        LANG_ZH_CN: "总 {total}，日均 {avg}",
+        LANG_EN: "Total {total}, Avg {avg}",
+        LANG_ZH_TW: "總 {total}，日均 {avg}",
+        LANG_JA: "合計 {total}、日平均 {avg}",
+        LANG_KO: "총 {total}, 일평균 {avg}",
+        LANG_RU: "Всего {total}, в день {avg}",
+    },
+    "daily_full": {
+        LANG_ZH_CN: "每日：{spent}/{limit} (剩余 {remain})",
+        LANG_EN: "Daily: {spent}/{limit} (left {remain})",
+        LANG_ZH_TW: "每日：{spent}/{limit} (剩餘 {remain})",
+        LANG_JA: "日次：{spent}/{limit} (残り {remain})",
+        LANG_KO: "일일: {spent}/{limit} (잔여 {remain})",
+        LANG_RU: "День: {spent}/{limit} (ост. {remain})",
+    },
+    "daily_no_limit": {
+        LANG_ZH_CN: "每日：{spent}/- (剩余 -)",
+        LANG_EN: "Daily: {spent}/- (left -)",
+        LANG_ZH_TW: "每日：{spent}/- (剩餘 -)",
+        LANG_JA: "日次：{spent}/- (残り -)",
+        LANG_KO: "일일: {spent}/- (잔여 -)",
+        LANG_RU: "День: {spent}/- (ост. -)",
+    },
+    "monthly_full": {
+        LANG_ZH_CN: "每月：{spent}/{limit} (剩余 {remain})",
+        LANG_EN: "Monthly: {spent}/{limit} (left {remain})",
+        LANG_ZH_TW: "每月：{spent}/{limit} (剩餘 {remain})",
+        LANG_JA: "月次：{spent}/{limit} (残り {remain})",
+        LANG_KO: "월간: {spent}/{limit} (잔여 {remain})",
+        LANG_RU: "Месяц: {spent}/{limit} (ост. {remain})",
+    },
+    "monthly_no_limit": {
+        LANG_ZH_CN: "每月：{spent}/- (剩余 -)",
+        LANG_EN: "Monthly: {spent}/- (left -)",
+        LANG_ZH_TW: "每月：{spent}/- (剩餘 -)",
+        LANG_JA: "月次：{spent}/- (残り -)",
+        LANG_KO: "월간: {spent}/- (잔여 -)",
+        LANG_RU: "Месяц: {spent}/- (ост. -)",
+    },
+    "cycle_expired": {
+        LANG_ZH_CN: "周期：{start}-{end}（已到期）",
+        LANG_EN: "Cycle: {start}-{end} (expired)",
+        LANG_ZH_TW: "週期：{start}-{end}（已到期）",
+        LANG_JA: "サイクル：{start}-{end}（期限切れ）",
+        LANG_KO: "주기: {start}-{end} (만료)",
+        LANG_RU: "Цикл: {start}-{end} (истёк)",
+    },
+    "cycle_remaining": {
+        LANG_ZH_CN: "周期：{start}-{end}（剩余{days}天）",
+        LANG_EN: "Cycle: {start}-{end} (left {days} days)",
+        LANG_ZH_TW: "週期：{start}-{end}（剩餘{days}天）",
+        LANG_JA: "サイクル：{start}-{end}（残り{days}日）",
+        LANG_KO: "주기: {start}-{end} (잔여 {days}일)",
+        LANG_RU: "Цикл: {start}-{end} (ост. {days} дн.)",
+    },
+    "renew_expired": {
+        LANG_ZH_CN: "⚠️ 已到期，请尽快续费",
+        LANG_EN: "⚠️ Expired, please renew",
+        LANG_ZH_TW: "⚠️ 已到期，請儘快續費",
+        LANG_JA: "⚠️ 期限切れ、早めの更新を",
+        LANG_KO: "⚠️ 만료됨, 갱신 필요",
+        LANG_RU: "⚠️ Срок истёк, продлите",
+    },
+    "renew_soon": {
+        LANG_ZH_CN: "⚠️ 即将到期（剩余{days}天），建议提前续费",
+        LANG_EN: "⚠️ Expiring soon (left {days} days), renew early",
+        LANG_ZH_TW: "⚠️ 即將到期（剩餘{days}天），建議提前續費",
+        LANG_JA: "⚠️ まもなく期限（残り{days}日）、早めの更新を",
+        LANG_KO: "⚠️ 곧 만료(잔여 {days}일), 미리 갱신 권장",
+        LANG_RU: "⚠️ Скоро истекает (ост. {days} дн.), продлите заранее",
+    },
+    "renew_prefix": {
+        LANG_ZH_CN: "续费提醒：{text}",
+        LANG_EN: "Renewal: {text}",
+        LANG_ZH_TW: "續費提醒：{text}",
+        LANG_JA: "更新通知：{text}",
+        LANG_KO: "갱신 알림: {text}",
+        LANG_RU: "Продление: {text}",
+    },
+    "balance_prefix": {
+        LANG_ZH_CN: "余额：{val}",
+        LANG_EN: "Balance: {val}",
+        LANG_ZH_TW: "餘額：{val}",
+        LANG_JA: "残高：{val}",
+        LANG_KO: "잔액: {val}",
+        LANG_RU: "Баланс: {val}",
+    },
+
+    # Token 展示与提醒
+    "token_expired_label": {
+        LANG_ZH_CN: "Token：已过期（{date}）",
+        LANG_EN: "Token: expired ({date})",
+        LANG_ZH_TW: "Token：已過期（{date}）",
+        LANG_JA: "トークン：期限切れ（{date}）",
+        LANG_KO: "토큰: 만료됨 ({date})",
+        LANG_RU: "Токен: истёк ({date})",
+    },
+    "token_valid_until": {
+        LANG_ZH_CN: "Token：{date}（{remain}）",
+        LANG_EN: "Token: {date} ({remain})",
+        LANG_ZH_TW: "Token：{date}（{remain}）",
+        LANG_JA: "トークン：{date}（{remain}）",
+        LANG_KO: "토큰: {date} ({remain})",
+        LANG_RU: "Токен: {date} ({remain})",
+    },
+    "notify_token_expired_subtitle": {
+        LANG_ZH_CN: "Token 已过期",
+        LANG_EN: "Token expired",
+        LANG_ZH_TW: "Token 已過期",
+        LANG_JA: "トークンの有効期限切れ",
+        LANG_KO: "토큰 만료",
+        LANG_RU: "Токен истёк",
+    },
+    "notify_token_expired_message": {
+        LANG_ZH_CN: "请在“设置 Token...”中更换 JWT",
+        LANG_EN: "Please replace JWT in 'Set Token...'",
+        LANG_ZH_TW: "請在「設定 Token...」中更換 JWT",
+        LANG_JA: "『トークンを設定...』で JWT を更新してください",
+        LANG_KO: "'토큰 설정...'에서 JWT를 교체하세요",
+        LANG_RU: "Замените JWT в 'Указать токен...'",
+    },
+
+    # 自定义标题
+    "custom_title_window": {
+        LANG_ZH_CN: "自定义标题格式",
+        LANG_EN: "Custom Title Format",
+        LANG_ZH_TW: "自訂標題格式",
+        LANG_JA: "カスタムタイトル形式",
+        LANG_KO: "사용자 지정 제목 형식",
+        LANG_RU: "Пользовательский формат заголовка",
+    },
+    "custom_title_help": {
+        LANG_ZH_CN: "自定义标题模板，支持占位符：\n{d_pct} {m_pct} {d_spent} {d_limit} {m_spent} {m_limit} {bal} {d_req}\n例如: D {d_pct}% | M {m_pct}% 或 $ {bal}",
+        LANG_EN: "Custom title template with placeholders:\n{d_pct} {m_pct} {d_spent} {d_limit} {m_spent} {m_limit} {bal} {d_req}\nExample: D {d_pct}% | M {m_pct}% or $ {bal}",
+        LANG_ZH_TW: "自訂標題模板，支援占位符：\n{d_pct} {m_pct} {d_spent} {d_limit} {m_spent} {m_limit} {bal} {d_req}\n例如: D {d_pct}% | M {m_pct}% 或 $ {bal}",
+        LANG_JA: "タイトルテンプレート（プレースホルダー）：\n{d_pct} {m_pct} {d_spent} {d_limit} {m_spent} {m_limit} {bal} {d_req}\n例: D {d_pct}% | M {m_pct}% または $ {bal}",
+        LANG_KO: "제목 템플릿, 자리표시자:\n{d_pct} {m_pct} {d_spent} {d_limit} {m_spent} {m_limit} {bal} {d_req}\n예: D {d_pct}% | M {m_pct}% 또는 $ {bal}",
+        LANG_RU: "Шаблон заголовка с плейсхолдерами:\n{d_pct} {m_pct} {d_spent} {d_limit} {m_spent} {m_limit} {bal} {d_req}\nПример: D {d_pct}% | M {m_pct}% или $ {bal}",
+    },
+    "btn_save": {
+        LANG_ZH_CN: "保存",
+        LANG_EN: "Save",
+        LANG_ZH_TW: "保存",
+        LANG_JA: "保存",
+        LANG_KO: "저장",
+        LANG_RU: "Сохранить",
+    },
+    "btn_cancel": {
+        LANG_ZH_CN: "取消",
+        LANG_EN: "Cancel",
+        LANG_ZH_TW: "取消",
+        LANG_JA: "キャンセル",
+        LANG_KO: "취소",
+        LANG_RU: "Отмена",
+    },
+
+    # Token 设置窗口
+    "set_token_title": {
+        LANG_ZH_CN: "设置 Token (JWT 或 API Key)",
+        LANG_EN: "Set Token (JWT or API Key)",
+        LANG_ZH_TW: "設定 Token (JWT 或 API Key)",
+        LANG_JA: "トークン設定 (JWT または API Key)",
+        LANG_KO: "토큰 설정 (JWT 또는 API Key)",
+        LANG_RU: "Указать токен (JWT или API Key)",
+    },
+    "set_token_message": {
+        LANG_ZH_CN: "粘贴从 PackyCode 获取的 JWT 或 API Key (将以 Bearer 形式发送)",
+        LANG_EN: "Paste JWT or API Key from PackyCode (sent as Bearer)",
+        LANG_ZH_TW: "貼上從 PackyCode 取得的 JWT 或 API Key（以 Bearer 方式發送）",
+        LANG_JA: "PackyCode から取得した JWT または API Key を貼り付け（Bearer で送信）",
+        LANG_KO: "PackyCode에서 받은 JWT 또는 API Key를 붙여넣으세요 (Bearer로 전송)",
+        LANG_RU: "Вставьте JWT или API Key из PackyCode (отправляется как Bearer)",
+    },
+
+    # 更新检查
+    "update_found_title": {
+        LANG_ZH_CN: "发现新版本",
+        LANG_EN: "New Version Found",
+        LANG_ZH_TW: "發現新版本",
+        LANG_JA: "新しいバージョンを検出",
+        LANG_KO: "새 버전 발견",
+        LANG_RU: "Найдена новая версия",
+    },
+    "update_found_message": {
+        LANG_ZH_CN: "发现新版本：{tag}\n当前版本：{cur}\n是否前往发布页下载？",
+        LANG_EN: "New version: {tag}\nCurrent: {cur}\nOpen releases page?",
+        LANG_ZH_TW: "發現新版本：{tag}\n目前版本：{cur}\n是否前往發布頁下載？",
+        LANG_JA: "新バージョン：{tag}\n現在：{cur}\nリリースページを開きますか？",
+        LANG_KO: "새 버전: {tag}\n현재: {cur}\n릴리스 페이지를 여시겠습니까?",
+        LANG_RU: "Новая версия: {tag}\nТекущая: {cur}\nОткрыть страницу релизов?",
+    },
+    "btn_go": {
+        LANG_ZH_CN: "前往",
+        LANG_EN: "Open",
+        LANG_ZH_TW: "前往",
+        LANG_JA: "開く",
+        LANG_KO: "열기",
+        LANG_RU: "Открыть",
+    },
+    "update_check_title": {
+        LANG_ZH_CN: "检查更新",
+        LANG_EN: "Check Updates",
+        LANG_ZH_TW: "檢查更新",
+        LANG_JA: "更新を確認",
+        LANG_KO: "업데이트 확인",
+        LANG_RU: "Проверка обновлений",
+    },
+    "update_latest_message": {
+        LANG_ZH_CN: "当前已是最新版本。",
+        LANG_EN: "You are up to date.",
+        LANG_ZH_TW: "目前已是最新版本。",
+        LANG_JA: "最新バージョンです。",
+        LANG_KO: "이미 최신 버전입니다.",
+        LANG_RU: "У вас последняя версия.",
+    },
+    "update_check_failed": {
+        LANG_ZH_CN: "检查更新失败",
+        LANG_EN: "Update Check Failed",
+        LANG_ZH_TW: "檢查更新失敗",
+        LANG_JA: "更新確認に失敗",
+        LANG_KO: "업데이트 확인 실패",
+        LANG_RU: "Сбой проверки обновления",
+    },
+
+    # 在线更新
+    "online_update": {
+        LANG_ZH_CN: "在线更新",
+        LANG_EN: "Online Update",
+        LANG_ZH_TW: "線上更新",
+        LANG_JA: "オンライン更新",
+        LANG_KO: "온라인 업데이트",
+        LANG_RU: "Онлайн-обновление",
+    },
+    "online_update_not_found": {
+        LANG_ZH_CN: "未找到可下载的发行包，请前往发布页手动下载。",
+        LANG_EN: "No downloadable asset found. Please download from releases page.",
+        LANG_ZH_TW: "未找到可下載的發行包，請前往發布頁手動下載。",
+        LANG_JA: "ダウンロード可能なアセットがありません。リリースページから入手してください。",
+        LANG_KO: "다운로드 가능한 자산을 찾지 못했습니다. 릴리스 페이지에서 내려받으세요.",
+        LANG_RU: "Не найден загружаемый пакет. Скачайте на странице релизов.",
+    },
+    "online_update_latest_confirm": {
+        LANG_ZH_CN: "当前已是最新版本（{cur}）。是否仍然重新安装？",
+        LANG_EN: "Already latest ({cur}). Reinstall anyway?",
+        LANG_ZH_TW: "目前已是最新版本（{cur}）。是否仍要重新安裝？",
+        LANG_JA: "既に最新（{cur}）。再インストールしますか？",
+        LANG_KO: "이미 최신({cur}). 그래도 재설치할까요?",
+        LANG_RU: "Уже последняя ({cur}). Переустановить?",
+    },
+    "btn_continue": {
+        LANG_ZH_CN: "继续",
+        LANG_EN: "Continue",
+        LANG_ZH_TW: "繼續",
+        LANG_JA: "続行",
+        LANG_KO: "계속",
+        LANG_RU: "Продолжить",
+    },
+    "online_update_checksum_failed": {
+        LANG_ZH_CN: "校验失败或无法获取校验文件：{err}",
+        LANG_EN: "Checksum failed or missing checksum file: {err}",
+        LANG_ZH_TW: "校驗失敗或無法取得校驗檔：{err}",
+        LANG_JA: "検証失敗または検証ファイル取得不可：{err}",
+        LANG_KO: "검증 실패 또는 체크섬 파일 없음: {err}",
+        LANG_RU: "Сбой проверки или нет файла контрольной суммы: {err}",
+    },
+    "online_update_zip_missing": {
+        LANG_ZH_CN: ".zip 内未找到 .app 文件。",
+        LANG_EN: "No .app found inside the zip.",
+        LANG_ZH_TW: ".zip 內未找到 .app 檔案。",
+        LANG_JA: "ZIP 内に .app が見つかりません。",
+        LANG_KO: "ZIP 안에 .app 파일이 없습니다.",
+        LANG_RU: "В ZIP не найдено .app.",
+    },
+    "online_update_download_done": {
+        LANG_ZH_CN: "下载完成",
+        LANG_EN: "Download Completed",
+        LANG_ZH_TW: "下載完成",
+        LANG_JA: "ダウンロード完了",
+        LANG_KO: "다운로드 완료",
+        LANG_RU: "Загрузка завершена",
+    },
+    "online_update_manual_replace": {
+        LANG_ZH_CN: "已在 Finder 打开，请手动替换应用。",
+        LANG_EN: "Opened in Finder. Replace the app manually.",
+        LANG_ZH_TW: "已在 Finder 開啟，請手動替換應用程式。",
+        LANG_JA: "Finder で開きました。手動で置き換えてください。",
+        LANG_KO: "Finder에서 열렸습니다. 앱을 수동으로 교체하세요.",
+        LANG_RU: "Открыто в Finder. Замените приложение вручную.",
+    },
+    "online_update_bundle_mismatch": {
+        LANG_ZH_CN: "包标识不一致：当前 {cur}，新包 {new}。已终止。",
+        LANG_EN: "Bundle ID mismatch: current {cur}, new {new}. Aborted.",
+        LANG_ZH_TW: "套件識別不一致：目前 {cur}，新包 {new}。已終止。",
+        LANG_JA: "バンドルID不一致：現在 {cur}、新 {new}。中止。",
+        LANG_KO: "번들 ID 불일치: 현재 {cur}, 새 {new}. 중단.",
+        LANG_RU: "Несовпадение Bundle ID: текущий {cur}, новый {new}. Операция прервана.",
+    },
+    "online_update_codesign_failed": {
+        LANG_ZH_CN: "签名校验失败（TeamIdentifier/CodeSign 不匹配）。已终止。",
+        LANG_EN: "Code signature verification failed (TeamIdentifier/CodeSign). Aborted.",
+        LANG_ZH_TW: "簽名驗證失敗（TeamIdentifier/CodeSign 不匹配）。已終止。",
+        LANG_JA: "署名検証に失敗（TeamIdentifier/CodeSign 不一致）。中止。",
+        LANG_KO: "서명 검증 실패(TeamIdentifier/CodeSign). 중단.",
+        LANG_RU: "Сбой проверки подписи (TeamIdentifier/CodeSign). Операция прервана.",
+    },
+    "online_update_unverified_prompt": {
+        LANG_ZH_CN: "签名未通过或未公证，可能不安全。是否继续安装？",
+        LANG_EN: "Signature unverifed or not notarized. Continue anyway?",
+        LANG_ZH_TW: "簽名未通過或未公證，可能不安全。是否繼續安裝？",
+        LANG_JA: "署名未検証または未ノータライズ。続行しますか？",
+        LANG_KO: "서명이 검증되지 않았거나 공증되지 않았습니다. 계속하시겠습니까?",
+        LANG_RU: "Подпись не проверена или нет нотариата. Продолжить?",
+    },
+    "online_update_replace_now": {
+        LANG_ZH_CN: "更新包已下载，是否立即替换并重启？",
+        LANG_EN: "Package downloaded. Replace and restart now?",
+        LANG_ZH_TW: "更新包已下載，是否立即替換並重新啟動？",
+        LANG_JA: "パッケージをダウンロードしました。今すぐ置換して再起動しますか？",
+        LANG_KO: "패키지 다운로드 완료. 지금 교체 후 재시작할까요?",
+        LANG_RU: "Пакет скачан. Заменить и перезапустить сейчас?",
+    },
+    "btn_replace_and_restart": {
+        LANG_ZH_CN: "替换并重启",
+        LANG_EN: "Replace & Restart",
+        LANG_ZH_TW: "替換並重新啟動",
+        LANG_JA: "置換して再起動",
+        LANG_KO: "교체 및 재시작",
+        LANG_RU: "Заменить и перезапустить",
+    },
+    "btn_later": {
+        LANG_ZH_CN: "稍后",
+        LANG_EN: "Later",
+        LANG_ZH_TW: "稍後",
+        LANG_JA: "後で",
+        LANG_KO: "나중에",
+        LANG_RU: "Позже",
+    },
+    "online_update_failed": {
+        LANG_ZH_CN: "在线更新失败",
+        LANG_EN: "Online Update Failed",
+        LANG_ZH_TW: "線上更新失敗",
+        LANG_JA: "オンライン更新に失敗",
+        LANG_KO: "온라인 업데이트 실패",
+        LANG_RU: "Сбой онлайн-обновления",
+    },
+
+    # 错误
+    "error_no_token": {
+        LANG_ZH_CN: "未设置 Token，请通过“设置 Token...”配置",
+        LANG_EN: "Token not set. Use 'Set Token...'",
+        LANG_ZH_TW: "未設定 Token，請透過「設定 Token...」配置",
+        LANG_JA: "トークン未設定。『トークンを設定...』から設定",
+        LANG_KO: "토큰이 설정되지 않았습니다. '토큰 설정...' 사용",
+        LANG_RU: "Токен не задан. Используйте 'Указать токен...'",
+    },
+    "error_http": {
+        LANG_ZH_CN: "请求失败: HTTP {code}",
+        LANG_EN: "Request failed: HTTP {code}",
+        LANG_ZH_TW: "請求失敗: HTTP {code}",
+        LANG_JA: "リクエスト失敗: HTTP {code}",
+        LANG_KO: "요청 실패: HTTP {code}",
+        LANG_RU: "Ошибка запроса: HTTP {code}",
+    },
+
+    # _fmt_remaining
+    "rem_expired": {
+        LANG_ZH_CN: "已过期",
+        LANG_EN: "expired",
+        LANG_ZH_TW: "已過期",
+        LANG_JA: "期限切れ",
+        LANG_KO: "만료됨",
+        LANG_RU: "истёк",
+    },
+    "rem_days_hours": {
+        LANG_ZH_CN: "剩余{days}天{hours}小时",
+        LANG_EN: "{days}d {hours}h left",
+        LANG_ZH_TW: "剩餘{days}天{hours}小時",
+        LANG_JA: "残り{days}日{hours}時間",
+        LANG_KO: "{days}일 {hours}시간 남음",
+        LANG_RU: "ост. {days}д {hours}ч",
+    },
+    "rem_hours_minutes": {
+        LANG_ZH_CN: "剩余{hours}小时{minutes}分钟",
+        LANG_EN: "{hours}h {minutes}m left",
+        LANG_ZH_TW: "剩餘{hours}小時{minutes}分鐘",
+        LANG_JA: "残り{hours}時間{minutes}分",
+        LANG_KO: "{hours}시간 {minutes}분 남음",
+        LANG_RU: "ост. {hours}ч {minutes}м",
+    },
+    "rem_minutes": {
+        LANG_ZH_CN: "剩余{minutes}分钟",
+        LANG_EN: "{minutes}m left",
+        LANG_ZH_TW: "剩餘{minutes}分鐘",
+        LANG_JA: "残り{minutes}分",
+        LANG_KO: "{minutes}분 남음",
+        LANG_RU: "ост. {minutes}м",
+    },
+}
+
+
+def _t(key: str, **kwargs) -> str:
+    lang = _current_language
+    table = I18N.get(key, {})
+    text = table.get(lang) or table.get(LANG_ZH_CN) or key
+    try:
+        return text.format(**kwargs)
+    except Exception:
+        return text
+
+
+# ---------------------------
 # 配置与常量
 # ---------------------------
 
@@ -40,6 +779,8 @@ DEFAULT_CONFIG = {
     "title_custom": "D {d_pct}% | M {m_pct}%",
     # 期望的 Apple TeamIdentifier（可选，用于强校验签名）
     "update_expected_team_id": "",
+    # 界面语言
+    "language": LANG_ZH_CN,
 }
 
 # 参考 packycode-cost/api/config.ts
@@ -204,6 +945,8 @@ class PackycodeStatusApp(rumps.App):
         super().__init__("PackyCode", icon=icon, title="")
 
         self._cfg = load_config()
+        # 应用语言设置
+        set_current_language(self._cfg.get("language", LANG_ZH_CN))
         self._lock = threading.RLock()
         self._last_data: Dict[str, Any] = {}
         self._last_error: Optional[str] = None
@@ -211,95 +954,74 @@ class PackycodeStatusApp(rumps.App):
         self._jwt_expired_notified: bool = False
 
         # 信息区（只读）
-        self.info_title = rumps.MenuItem("状态：未初始化")
+        self.info_title = rumps.MenuItem(_t("status_uninitialized"))
         self.info_title.state = 0
         self.info_title.set_callback(None)
 
-        self.info_daily = rumps.MenuItem("每日：-/- (剩余 -)")
+        self.info_daily = rumps.MenuItem(_t("daily_placeholder"))
         self.info_daily.set_callback(None)
 
-        self.info_requests = rumps.MenuItem("请求次数：-")
+        self.info_requests = rumps.MenuItem(_t("requests_placeholder"))
         self.info_requests.set_callback(None)
 
         # 使用统计扩展
-        self.info_usage_span = rumps.MenuItem("近30日：-")
+        self.info_usage_span = rumps.MenuItem(_t("usage_span_placeholder"))
         self.info_usage_span.set_callback(None)
 
-        self.info_monthly = rumps.MenuItem("每月：-/- (剩余 -)")
+        self.info_monthly = rumps.MenuItem(_t("monthly_placeholder"))
         self.info_monthly.set_callback(None)
 
         # 套餐周期与续费提醒
-        self.info_cycle = rumps.MenuItem("周期：-")
+        self.info_cycle = rumps.MenuItem(_t("cycle_placeholder"))
         self.info_cycle.set_callback(None)
 
-        self.info_renew = rumps.MenuItem("续费提醒：-")
+        self.info_renew = rumps.MenuItem(_t("renew_placeholder"))
         self.info_renew.set_callback(None)
         self._renew_shown = False
 
-        self.info_balance = rumps.MenuItem("余额：-")
+        self.info_balance = rumps.MenuItem(_t("balance_placeholder"))
         self.info_balance.set_callback(None)
 
-        self.info_last = rumps.MenuItem("上次更新：-")
+        self.info_last = rumps.MenuItem(_t("last_update_placeholder"))
         self.info_last.set_callback(None)
 
         # Token 到期信息
-        self.info_token_exp = rumps.MenuItem("Token：-")
+        self.info_token_exp = rumps.MenuItem(_t("token_placeholder"))
         self.info_token_exp.set_callback(None)
 
         # 版本信息（底部显示）
         self._version = get_app_version()
-        self.info_version = rumps.MenuItem(f"版本：{self._version}")
+        self.info_version = rumps.MenuItem(f"{_t('version_prefix')}{self._version}")
         self.info_version.set_callback(None)
 
-        # 账号类型子菜单
-        self.menu_account = {
-            "共享（公交车）": rumps.MenuItem("共享（公交车）", callback=self._set_shared),
-            "滴滴车（私有）": rumps.MenuItem("滴滴车（私有）", callback=self._set_private),
-            "Codex 公交车": rumps.MenuItem("Codex 公交车", callback=self._set_codex),
-        }
+        # 账号类型子菜单（具体项保留对象引用，便于语言切换与勾选）
+        self.item_account_shared = rumps.MenuItem(_t("account_shared"), callback=self._set_shared)
+        self.item_account_private = rumps.MenuItem(_t("account_private"), callback=self._set_private)
+        self.item_account_codex = rumps.MenuItem(_t("account_codex"), callback=self._set_codex)
 
         # 标题格式子菜单
-        self.menu_title_fmt = {
-            "百分比": rumps.MenuItem("百分比", callback=self._set_title_percent),
-            "自定义...": rumps.MenuItem("自定义...", callback=self._set_title_custom),
-            "显示请求次数": rumps.MenuItem("显示请求次数", callback=self._toggle_title_requests),
-        }
+        self.item_title_percent = rumps.MenuItem(_t("titlefmt_percent"), callback=self._set_title_percent)
+        self.item_title_custom = rumps.MenuItem(_t("titlefmt_custom"), callback=self._set_title_custom)
+        self.item_title_show_requests = rumps.MenuItem(_t("titlefmt_show_requests"), callback=self._toggle_title_requests)
 
-        # 推广链接子菜单（使用列表，避免多余的嵌套层级）
-        self.menu_affiliates = [
-            rumps.MenuItem("PackyCode", callback=self.open_affiliate_packycode),
-            rumps.MenuItem("Codex", callback=self.open_affiliate_codex),
-        ]
+        # 推广链接子菜单在重建时动态创建（避免跨菜单复用）
+        self.menu_affiliates = None
+
+        # 语言子菜单（采用语言本地名称）
+        self.item_lang_zh_cn = rumps.MenuItem("简体中文", callback=lambda _=None: self._set_language(LANG_ZH_CN))
+        self.item_lang_en = rumps.MenuItem("English", callback=lambda _=None: self._set_language(LANG_EN))
+        self.item_lang_zh_tw = rumps.MenuItem("繁體中文", callback=lambda _=None: self._set_language(LANG_ZH_TW))
+        self.item_lang_ja = rumps.MenuItem("日本語", callback=lambda _=None: self._set_language(LANG_JA))
+        self.item_lang_ko = rumps.MenuItem("한국어", callback=lambda _=None: self._set_language(LANG_KO))
+        self.item_lang_ru = rumps.MenuItem("Русский", callback=lambda _=None: self._set_language(LANG_RU))
 
         # 完整菜单
-        self.menu = [
-            self.info_title,
-            self.info_daily,
-            self.info_requests,
-            self.info_usage_span,
-            self.info_monthly,
-            self.info_cycle,
-            self.info_balance,
-            self.info_token_exp,
-            self.info_last,
-            None,
-            rumps.MenuItem("刷新", callback=self.refresh_now),
-            {"账号类型": self.menu_account},
-            {"标题格式": self.menu_title_fmt},
-            rumps.MenuItem("设置 Token...", callback=self.set_token),
-            rumps.MenuItem("隐藏/展示", callback=self.toggle_hidden),
-            rumps.MenuItem("打开控制台", callback=self.open_dashboard),
-            rumps.MenuItem("延迟监控", callback=self.open_latency_monitor),
-            rumps.MenuItem("检查更新", callback=self.check_update_now),
-            rumps.MenuItem("在线更新", callback=self.update_online_now),
-            {"推广": self.menu_affiliates},
-            None,
-            self.info_version,
-        ]
+        self._rebuild_menu(False)
 
         # 初始选中账号类型
         self._update_account_checkmarks()
         self._update_title_format_checkmarks()
+        self._update_language_checkmarks()
         # 如果配置为隐藏，应用标题置空
         if self._cfg.get("hidden"):
             self.title = ""
@@ -315,6 +1037,9 @@ class PackycodeStatusApp(rumps.App):
             pass
 
     def _rebuild_menu(self, show_renew: bool):
+        # 更新版本标签的语言前缀
+        self.info_version.title = f"{_t('version_prefix')}{self._version}"
+
         items = [
             self.info_title,
             self.info_daily,
@@ -325,26 +1050,115 @@ class PackycodeStatusApp(rumps.App):
         ]
         if show_renew:
             items.append(self.info_renew)
+        # 子菜单分组（每次重建时创建全新子项，避免跨菜单重复插入）
+
         items.extend([
             self.info_balance,
             self.info_token_exp,
             self.info_last,
             None,
-            rumps.MenuItem("刷新", callback=self.refresh_now),
-            {"账号类型": self.menu_account},
-            {"标题格式": self.menu_title_fmt},
-            rumps.MenuItem("设置 Token...", callback=self.set_token),
-            rumps.MenuItem("隐藏/展示", callback=self.toggle_hidden),
-            rumps.MenuItem("打开控制台", callback=self.open_dashboard),
-            rumps.MenuItem("延迟监控", callback=self.open_latency_monitor),
-            rumps.MenuItem("检查更新", callback=self.check_update_now),
-            rumps.MenuItem("在线更新", callback=self.update_online_now),
-            {"推广": self.menu_affiliates},
+            rumps.MenuItem(_t("menu_refresh"), callback=self.refresh_now),
+            {_t("menu_account"): self._build_account_menu_items()},
+            {_t("menu_title_format"): self._build_title_menu_items()},
+            {_t("menu_language"): self._build_language_menu_items()},
+            rumps.MenuItem(_t("menu_set_token"), callback=self.set_token),
+            rumps.MenuItem(_t("menu_toggle_hidden"), callback=self.toggle_hidden),
+            rumps.MenuItem(_t("menu_open_dashboard"), callback=self.open_dashboard),
+            rumps.MenuItem(_t("menu_latency_monitor"), callback=self.open_latency_monitor),
+            rumps.MenuItem(_t("menu_check_update"), callback=self.check_update_now),
+            rumps.MenuItem(_t("menu_update_online"), callback=self.update_online_now),
+            {_t("menu_affiliates"): self._build_affiliates_menu_items()},
             None,
             self.info_version,
         ])
-        self.menu = items
+        # 先清空旧菜单，避免重复绑定 MenuItem
+        try:
+            self.menu.clear()
+        except Exception:
+            pass
+        self.menu.update(items)
         self._renew_shown = show_renew
+        # 确保勾选状态与配置同步
+        try:
+            self._update_account_checkmarks()
+            self._update_title_format_checkmarks()
+            self._update_language_checkmarks()
+        except Exception:
+            pass
+
+    def _build_account_menu_items(self):
+        self.item_account_shared = rumps.MenuItem(_t("account_shared"), callback=self._set_shared)
+        self.item_account_private = rumps.MenuItem(_t("account_private"), callback=self._set_private)
+        self.item_account_codex = rumps.MenuItem(_t("account_codex"), callback=self._set_codex)
+        return [self.item_account_shared, self.item_account_private, self.item_account_codex]
+
+    def _build_title_menu_items(self):
+        self.item_title_percent = rumps.MenuItem(_t("titlefmt_percent"), callback=self._set_title_percent)
+        self.item_title_custom = rumps.MenuItem(_t("titlefmt_custom"), callback=self._set_title_custom)
+        self.item_title_show_requests = rumps.MenuItem(_t("titlefmt_show_requests"), callback=self._toggle_title_requests)
+        return [self.item_title_percent, self.item_title_custom, self.item_title_show_requests]
+
+    def _build_language_menu_items(self):
+        self.item_lang_zh_cn = rumps.MenuItem("简体中文", callback=lambda _=None: self._set_language(LANG_ZH_CN))
+        self.item_lang_en = rumps.MenuItem("English", callback=lambda _=None: self._set_language(LANG_EN))
+        self.item_lang_zh_tw = rumps.MenuItem("繁體中文", callback=lambda _=None: self._set_language(LANG_ZH_TW))
+        self.item_lang_ja = rumps.MenuItem("日本語", callback=lambda _=None: self._set_language(LANG_JA))
+        self.item_lang_ko = rumps.MenuItem("한국어", callback=lambda _=None: self._set_language(LANG_KO))
+        self.item_lang_ru = rumps.MenuItem("Русский", callback=lambda _=None: self._set_language(LANG_RU))
+        return [
+            self.item_lang_zh_cn,
+            self.item_lang_en,
+            self.item_lang_zh_tw,
+            self.item_lang_ja,
+            self.item_lang_ko,
+            self.item_lang_ru,
+        ]
+
+    def _build_affiliates_menu_items(self):
+        return [
+            rumps.MenuItem("PackyCode", callback=self.open_affiliate_packycode),
+            rumps.MenuItem("Codex", callback=self.open_affiliate_codex),
+        ]
+
+    def _update_language_checkmarks(self):
+        lang = self._cfg.get("language", LANG_ZH_CN)
+        self.item_lang_zh_cn.state = 1 if lang == LANG_ZH_CN else 0
+        self.item_lang_en.state = 1 if lang == LANG_EN else 0
+        self.item_lang_zh_tw.state = 1 if lang == LANG_ZH_TW else 0
+        self.item_lang_ja.state = 1 if lang == LANG_JA else 0
+        self.item_lang_ko.state = 1 if lang == LANG_KO else 0
+        self.item_lang_ru.state = 1 if lang == LANG_RU else 0
+
+    def _set_language(self, lang: str):
+        with self._lock:
+            self._cfg["language"] = lang
+            save_config(self._cfg)
+            set_current_language(lang)
+        # 在回调之后异步重建菜单，避免在当前回调栈中修改 NSMenu 结构
+        self._schedule_rebuild_menu()
+
+    def _schedule_rebuild_menu(self):
+        def _do(timer: rumps.Timer):
+            try:
+                self._rebuild_menu(getattr(self, "_renew_shown", False))
+            finally:
+                try:
+                    timer.stop()
+                except Exception:
+                    pass
+                try:
+                    self._update_account_checkmarks()
+                    self._update_title_format_checkmarks()
+                    self._update_language_checkmarks()
+                    # 使用缓存的数据刷新展示文案到新语言，避免必发起网络请求
+                    self._update_ui_from_info(getattr(self, "_last_data", None) or None,
+                                              getattr(self, "_last_usage", None) or None,
+                                              None)
+                except Exception:
+                    pass
+        t = rumps.Timer(_do, 0.05)
+        self._lang_rebuild_timer = t
+        t.start()
 
     # ------------- 菜单回调 -------------
     def refresh_now(self, _: Optional[rumps.MenuItem] = None):
@@ -363,11 +1177,11 @@ class PackycodeStatusApp(rumps.App):
 
     def set_token(self, _: Optional[rumps.MenuItem] = None):
         win = rumps.Window(
-            title="设置 Token (JWT 或 API Key)",
-            message="粘贴从 PackyCode 获取的 JWT 或 API Key (将以 Bearer 形式发送)",
+            title=_t("set_token_title"),
+            message=_t("set_token_message"),
             default_text=self._cfg.get("token", ""),
-            ok="保存",
-            cancel="取消",
+            ok=_t("btn_save"),
+            cancel=_t("btn_cancel"),
         )
         res = win.run()
         if res.clicked:
@@ -445,15 +1259,15 @@ class PackycodeStatusApp(rumps.App):
 
             cmp = self._compare_versions(tag, self._version)
             if cmp > 0:
-                msg = f"发现新版本：{tag}\n当前版本：{self._version}\n是否前往发布页下载？"
-                win = rumps.Window(title="发现新版本", message=msg, default_text="", ok="前往", cancel="取消")
+                msg = _t("update_found_message", tag=tag, cur=self._version)
+                win = rumps.Window(title=_t("update_found_title"), message=msg, default_text="", ok=_t("btn_go"), cancel=_t("btn_cancel"))
                 res = win.run()
                 if res.clicked:
                     webbrowser.open(html_url)
             else:
-                rumps.alert(title="检查更新", message="当前已是最新版本。")
+                rumps.alert(title=_t("update_check_title"), message=_t("update_latest_message"))
         except Exception as e:
-            rumps.alert(title="检查更新失败", message=str(e))
+            rumps.alert(title=_t("update_check_failed"), message=str(e))
 
     # ------------- 在线更新（下载并替换 .app） -------------
     def _latest_release_asset(self, repo: str) -> Optional[Tuple[str, str, str, Optional[str]]]:
@@ -521,16 +1335,16 @@ class PackycodeStatusApp(rumps.App):
         try:
             latest = self._latest_release_asset(repo)
             if not latest:
-                rumps.alert(title="在线更新", message="未找到可下载的发行包，请前往发布页手动下载。")
+                rumps.alert(title=_t("online_update"), message=_t("online_update_not_found"))
                 return
             tag, html_url, download_url, sha_url = latest
             cmp = self._compare_versions(tag, self._version)
             if cmp <= 0:
                 proceed = rumps.Window(
-                    title="在线更新",
-                    message=f"当前已是最新版本（{self._version}）。是否仍然重新安装？",
-                    ok="继续",
-                    cancel="取消",
+                    title=_t("online_update"),
+                    message=_t("online_update_latest_confirm", cur=self._version),
+                    ok=_t("btn_continue"),
+                    cancel=_t("btn_cancel"),
                 ).run()
                 if not proceed.clicked:
                     return
@@ -538,7 +1352,7 @@ class PackycodeStatusApp(rumps.App):
             zip_path = os.path.join(tmp_dir, "update.zip")
             with requests.get(download_url, stream=True, timeout=30) as r:
                 if r.status_code >= 400:
-                    raise RuntimeError(f"下载失败: HTTP {r.status_code}")
+                    raise RuntimeError(_t("error_http", code=r.status_code))
                 with open(zip_path, "wb") as f:
                     for chunk in r.iter_content(chunk_size=8192):
                         if chunk:
@@ -557,7 +1371,7 @@ class PackycodeStatusApp(rumps.App):
                             if expected != actual:
                                 raise RuntimeError("校验失败：SHA256 不匹配")
                 except Exception as e:
-                    rumps.alert(title="在线更新", message=f"校验失败或无法获取校验文件：{e}")
+                    rumps.alert(title=_t("online_update"), message=_t("online_update_checksum_failed", err=str(e)))
                     return
             extract_dir = os.path.join(tmp_dir, "unzipped")
             os.makedirs(extract_dir, exist_ok=True)
@@ -572,13 +1386,13 @@ class PackycodeStatusApp(rumps.App):
                 if new_app:
                     break
             if not new_app:
-                rumps.alert(title="在线更新", message="压缩包内未找到 .app 文件。")
+                rumps.alert(title=_t("online_update"), message=_t("online_update_zip_missing"))
                 return
 
             target_app = self._current_app_bundle()
             if not target_app:
                 # 源码运行，打开解压目录供手动替换
-                rumps.notification(title="在线更新", subtitle="下载完成", message="已在 Finder 打开，请手动替换应用。")
+                rumps.notification(title=_t("online_update"), subtitle=_t("online_update_download_done"), message=_t("online_update_manual_replace"))
                 subprocess.Popen(["open", extract_dir])
                 return
 
@@ -598,7 +1412,7 @@ class PackycodeStatusApp(rumps.App):
             cur_bid = _bundle_id(target_app)
             new_bid = _bundle_id(new_app)
             if cur_bid and new_bid and cur_bid != new_bid:
-                rumps.alert(title="在线更新", message=f"包标识不一致：当前 {cur_bid}，新包 {new_bid}。已终止。")
+                rumps.alert(title=_t("online_update"), message=_t("online_update_bundle_mismatch", cur=cur_bid, new=new_bid))
                 return
 
             # 签名校验：codesign/spctl 与 TeamIdentifier（如配置）
@@ -627,16 +1441,16 @@ class PackycodeStatusApp(rumps.App):
 
             if expected_team:
                 if not team_ok or rc1 != 0:
-                    rumps.alert(title="在线更新", message="签名校验失败（TeamIdentifier/CodeSign 不匹配）。已终止。")
+                    rumps.alert(title=_t("online_update"), message=_t("online_update_codesign_failed"))
                     return
             else:
                 # 无强制 team，若校验失败，给出确认提示
                 if rc1 != 0 or rc2 != 0:
                     cont = rumps.Window(
-                        title="在线更新",
-                        message="签名未通过或未公证，可能不安全。是否继续安装？",
-                        ok="继续",
-                        cancel="取消",
+                        title=_t("online_update"),
+                        message=_t("online_update_unverified_prompt"),
+                        ok=_t("btn_continue"),
+                        cancel=_t("btn_cancel"),
                     ).run()
                     if not cont.clicked:
                         return
@@ -661,10 +1475,10 @@ open \"$TARGET_APP\"
             os.chmod(script_path, 0o755)
 
             res = rumps.Window(
-                title="在线更新",
-                message="更新包已下载，是否立即替换并重启？",
-                ok="替换并重启",
-                cancel="稍后",
+                title=_t("online_update"),
+                message=_t("online_update_replace_now"),
+                ok=_t("btn_replace_and_restart"),
+                cancel=_t("btn_later"),
             ).run()
             if not res.clicked:
                 subprocess.Popen(["open", extract_dir])
@@ -673,15 +1487,15 @@ open \"$TARGET_APP\"
             subprocess.Popen(["bash", script_path])
             rumps.quit_application()
         except Exception as e:
-            rumps.alert(title="在线更新失败", message=str(e))
+            rumps.alert(title=_t("online_update_failed"), message=str(e))
 
     # ------------- 标题格式相关 -------------
     def _update_title_format_checkmarks(self):
         mode = self._cfg.get("title_mode", "percent")
-        self.menu_title_fmt["百分比"].state = 1 if mode == "percent" else 0
+        self.item_title_percent.state = 1 if mode == "percent" else 0
         # 自定义是一个操作项（...），不打勾
         include_requests = bool(self._cfg.get("title_include_requests"))
-        self.menu_title_fmt["显示请求次数"].state = 1 if include_requests else 0
+        self.item_title_show_requests.state = 1 if include_requests else 0
 
     def _set_title_percent(self, _: Optional[rumps.MenuItem] = None):
         with self._lock:
@@ -694,17 +1508,13 @@ open \"$TARGET_APP\"
         self._refresh(force=True)
 
     def _set_title_custom(self, _: Optional[rumps.MenuItem] = None):
-        help_text = (
-            "自定义标题模板，支持占位符：\n"
-            "{d_pct} {m_pct} {d_spent} {d_limit} {m_spent} {m_limit} {bal} {d_req}\n"
-            "例如: D {d_pct}% | M {m_pct}% 或 $ {bal}"
-        )
+        help_text = _t("custom_title_help")
         win = rumps.Window(
-            title="自定义标题格式",
+            title=_t("custom_title_window"),
             message=help_text,
             default_text=self._cfg.get("title_custom", DEFAULT_CONFIG["title_custom"]),
-            ok="保存",
-            cancel="取消",
+            ok=_t("btn_save"),
+            cancel=_t("btn_cancel"),
         )
         res = win.run()
         if res.clicked:
@@ -732,9 +1542,9 @@ open \"$TARGET_APP\"
     # ------------- 内部逻辑 -------------
     def _update_account_checkmarks(self):
         current = self._cfg.get("account_version", "shared")
-        self.menu_account["共享（公交车）"].state = 1 if current == "shared" else 0
-        self.menu_account["滴滴车（私有）"].state = 1 if current == "private" else 0
-        self.menu_account["Codex 公交车"].state = 1 if current == "codex_shared" else 0
+        self.item_account_shared.state = 1 if current == "shared" else 0
+        self.item_account_private.state = 1 if current == "private" else 0
+        self.item_account_codex.state = 1 if current == "codex_shared" else 0
 
     def _get_base_and_dashboard(self) -> Tuple[str, str]:
         account = self._cfg.get("account_version", "shared")
@@ -746,36 +1556,38 @@ open \"$TARGET_APP\"
         try:
             token = (self._cfg.get("token") or "").strip()
             if not token or not _is_probable_jwt(token):
-                self.info_token_exp.title = "Token：-"
+                self.info_token_exp.title = _t("token_placeholder")
                 return
             exp = _extract_exp_from_jwt(token)
             if not exp:
-                self.info_token_exp.title = "Token：-"
+                self.info_token_exp.title = _t("token_placeholder")
                 return
             # 本地时间展示
             dt_local = datetime.datetime.fromtimestamp(exp)
             remaining = int(exp - time.time())
             remain_text = _fmt_remaining(remaining)
             if remaining <= 0:
-                self.info_token_exp.title = f"Token：已过期（{dt_local.strftime('%Y-%m-%d %H:%M')}）"
+                self.info_token_exp.title = _t("token_expired_label", date=dt_local.strftime('%Y-%m-%d %H:%M'))
                 if not self._jwt_expired_notified:
                     try:
                         rumps.notification(
                             title="PackyCode",
-                            subtitle="Token 已过期",
-                            message="请在“设置 Token...”中更换 JWT",
+                            subtitle=_t("notify_token_expired_subtitle"),
+                            message=_t("notify_token_expired_message"),
                         )
                     except Exception:
                         pass
                     self._jwt_expired_notified = True
             else:
-                self.info_token_exp.title = (
-                    f"Token：{dt_local.strftime('%Y-%m-%d %H:%M')}（{remain_text}）"
+                self.info_token_exp.title = _t(
+                    "token_valid_until",
+                    date=dt_local.strftime('%Y-%m-%d %H:%M'),
+                    remain=remain_text,
                 )
                 # 未过期时允许再次提醒（比如用户换新 Token 后）
                 self._jwt_expired_notified = False
         except Exception:
-            self.info_token_exp.title = "Token：-"
+            self.info_token_exp.title = _t("token_placeholder")
 
     def _refresh(self, force: bool = False):
         # 避免过于频繁的刷新
@@ -808,7 +1620,7 @@ open \"$TARGET_APP\"
     def _fetch_user_info(self) -> Optional[Dict[str, Any]]:
         token = (self._cfg.get("token") or "").strip()
         if not token:
-            raise RuntimeError("未设置 Token，请通过“设置 Token...”配置")
+            raise RuntimeError(_t("error_no_token"))
 
         base, _dashboard = self._get_base_and_dashboard()
         url = f"{base}{USER_INFO_PATH}"
@@ -821,7 +1633,7 @@ open \"$TARGET_APP\"
 
         resp = requests.get(url, headers=headers, timeout=10)
         if resp.status_code >= 400:
-            raise RuntimeError(f"请求失败: HTTP {resp.status_code}")
+            raise RuntimeError(_t("error_http", code=resp.status_code))
 
         data = resp.json()
         # 兼容 { success, data } 或直接数据
@@ -918,13 +1730,13 @@ open \"$TARGET_APP\"
 
     def _update_ui_from_info(self, info: Optional[Dict[str, Any]], usage: Optional[Dict[str, Any]], sub_period: Optional[Tuple[datetime.date, datetime.date]]):
         if not info:
-            self.info_title.title = "状态：无数据"
-            self.title = "" if self._cfg.get("hidden") else "无数据"
-            self.info_last.title = f"上次更新：{now_str()}"
-            self.info_requests.title = "请求次数：-"
-            self.info_usage_span.title = "近30日：-"
-            self.info_cycle.title = "周期：-"
-            self.info_renew.title = "续费提醒：-"
+            self.info_title.title = _t("status_no_data")
+            self.title = "" if self._cfg.get("hidden") else _t("title_no_data")
+            self.info_last.title = _t("last_update_prefix", time=now_str())
+            self.info_requests.title = _t("requests_prefix", val="-")
+            self.info_usage_span.title = _t("usage_span_prefix", val="-")
+            self.info_cycle.title = _t("cycle_placeholder")
+            self.info_renew.title = _t("renew_placeholder")
             self._update_token_status()
             # 隐藏续费提醒
             if getattr(self, "_renew_shown", False):
@@ -961,7 +1773,7 @@ open \"$TARGET_APP\"
                         except Exception:
                             pass
                     if cnt > 0:
-                        span_desc = f"总 {total}，日均 {round_half_up(total / cnt)}"
+                        span_desc = _t("usage_span_desc", total=total, avg=round_half_up(total / cnt))
             except Exception:
                 span_desc = None
 
@@ -969,22 +1781,22 @@ open \"$TARGET_APP\"
         monthly_remaining = max(0.0, monthly_limit - monthly_spent) if monthly_limit else 0.0
 
         # 更新菜单详情
-        self.info_title.title = "状态：正常"
+        self.info_title.title = _t("status_ok")
         self.info_daily.title = (
-            f"每日：{daily_spent:.2f}/{daily_limit:.2f} (剩余 {daily_remaining:.2f})"
+            _t("daily_full", spent=f"{daily_spent:.2f}", limit=f"{daily_limit:.2f}", remain=f"{daily_remaining:.2f}")
             if daily_limit > 0
-            else f"每日：{daily_spent:.2f}/- (剩余 -)"
+            else _t("daily_no_limit", spent=f"{daily_spent:.2f}")
         )
         if today_calls is not None:
-            self.info_requests.title = f"请求次数：{today_calls}"
+            self.info_requests.title = _t("requests_prefix", val=today_calls)
         else:
-            self.info_requests.title = "请求次数：-"
+            self.info_requests.title = _t("requests_prefix", val="-")
 
-        self.info_usage_span.title = f"近30日：{span_desc}" if span_desc else "近30日：-"
+        self.info_usage_span.title = _t("usage_span_prefix", val=span_desc) if span_desc else _t("usage_span_placeholder")
         self.info_monthly.title = (
-            f"每月：{monthly_spent:.2f}/{monthly_limit:.2f} (剩余 {monthly_remaining:.2f})"
+            _t("monthly_full", spent=f"{monthly_spent:.2f}", limit=f"{monthly_limit:.2f}", remain=f"{monthly_remaining:.2f}")
             if monthly_limit > 0
-            else f"每月：{monthly_spent:.2f}/- (剩余 -)"
+            else _t("monthly_no_limit", spent=f"{monthly_spent:.2f}")
         )
 
         # 周期与续费提醒（优先使用订阅 current_period_start/end；其次 plan_expires_at；否则按自然月）
@@ -1019,25 +1831,25 @@ open \"$TARGET_APP\"
         start_str = f"{cycle_start.month:02d}.{cycle_start.day:02d}"
         end_str = f"{cycle_end.month:02d}.{cycle_end.day:02d}"
         if days_left <= 0:
-            self.info_cycle.title = f"周期：{start_str}-{end_str}（已到期）"
+            self.info_cycle.title = _t("cycle_expired", start=start_str, end=end_str)
         else:
-            self.info_cycle.title = f"周期：{start_str}-{end_str}（剩余{days_left}天）"
+            self.info_cycle.title = _t("cycle_remaining", start=start_str, end=end_str, days=days_left)
 
         # 续费提醒：到期前 3 天显示；其他时间不显示
         show_renew = days_left <= 3
         if days_left <= 0:
-            renew_text = "⚠️ 已到期，请尽快续费"
+            renew_text = _t("renew_expired")
         elif days_left <= 3:
-            renew_text = f"⚠️ 即将到期（剩余{days_left}天），建议提前续费"
+            renew_text = _t("renew_soon", days=days_left)
         else:
             renew_text = "-"
-        self.info_renew.title = f"续费提醒：{renew_text}"
+        self.info_renew.title = _t("renew_prefix", text=renew_text)
         if balance is not None:
-            self.info_balance.title = f"余额：{fmt_money(balance)}"
+            self.info_balance.title = _t("balance_prefix", val=fmt_money(balance))
         else:
-            self.info_balance.title = "余额：-"
+            self.info_balance.title = _t("balance_placeholder")
 
-        self.info_last.title = f"上次更新：{now_str()}"
+        self.info_last.title = _t("last_update_prefix", time=now_str())
         # 更新 Token 到期信息与提醒
         self._update_token_status()
 
@@ -1052,15 +1864,15 @@ open \"$TARGET_APP\"
             self._rebuild_menu(show_renew)
 
     def _update_ui_error(self, err: str):
-        self.info_title.title = f"状态：错误 - {err}"
-        self.info_last.title = f"上次更新：{now_str()}"
-        self.info_requests.title = "请求次数：-"
-        self.info_usage_span.title = "近30日：-"
-        self.info_cycle.title = "周期：-"
-        self.info_renew.title = "续费提醒：-"
+        self.info_title.title = _t("status_error_prefix", err=err)
+        self.info_last.title = _t("last_update_prefix", time=now_str())
+        self.info_requests.title = _t("requests_prefix", val="-")
+        self.info_usage_span.title = _t("usage_span_placeholder")
+        self.info_cycle.title = _t("cycle_placeholder")
+        self.info_renew.title = _t("renew_placeholder")
         self._update_token_status()
         if not self._cfg.get("hidden"):
-            self.title = "错误"
+            self.title = _t("title_error")
         # 隐藏续费提醒
         if getattr(self, "_renew_shown", False):
             self._rebuild_menu(False)
@@ -1108,19 +1920,19 @@ open \"$TARGET_APP\"
             # 缺省百分比样式
             title = f"D {ctx['d_pct']}% | M {ctx['m_pct']}%"
             if include_requests and daily_requests is not None:
-                title = f"{title} | Req {ctx['d_req']}"
+                title = f"{title} | {_t('title_req_label')} {ctx['d_req']}"
             return title
         elif mode == "custom":
             tpl = self._cfg.get("title_custom") or DEFAULT_CONFIG["title_custom"]
             title = _safe_format_template(tpl, ctx)
             if include_requests and daily_requests is not None and "{d_req}" not in tpl:
-                title = f"{title} | Req {ctx['d_req']}"
+                title = f"{title} | {_t('title_req_label')} {ctx['d_req']}"
             return title
         else:
             # 兜底：百分比
             title = f"D {ctx['d_pct']}% | M {ctx['m_pct']}%"
             if include_requests and daily_requests is not None:
-                title = f"{title} | Req {ctx['d_req']}"
+                title = f"{title} | {_t('title_req_label')} {ctx['d_req']}"
             return title
 
 
@@ -1180,17 +1992,17 @@ def _extract_exp_from_jwt(token: str) -> Optional[int]:
 def _fmt_remaining(sec: int) -> str:
     try:
         if sec <= 0:
-            return "已过期"
+            return _t("rem_expired")
         days = sec // 86400
         sec %= 86400
         hours = sec // 3600
         sec %= 3600
         minutes = sec // 60
         if days > 0:
-            return f"剩余{days}天{hours}小时"
+            return _t("rem_days_hours", days=days, hours=hours)
         if hours > 0:
-            return f"剩余{hours}小时{minutes}分钟"
-        return f"剩余{minutes}分钟"
+            return _t("rem_hours_minutes", hours=hours, minutes=minutes)
+        return _t("rem_minutes", minutes=minutes)
     except Exception:
         return "-"
 

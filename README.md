@@ -15,6 +15,7 @@
   - 新增：显示周期与续费提醒
     - 周期：优先使用订阅接口 `current_period_start/current_period_end`（`/api/backend/subscriptions`），其次使用 `plan_expires_at`；若都无则按自然月，展示 `MM.DD-MM.DD`
     - 续费提醒：到期前 3 天显示“即将到期/建议续费”，平时不展示
+- 语言切换：支持 简体中文、English、繁體中文、日本語、한국어、Русский（菜单“语言”中切换）
 - 菜单内设置：
   - 账号类型切换：共享（shared）/ 滴滴车（private）/ Codex（codex_shared）
   - 设置 Token（支持 JWT 或 API Key，均使用 Bearer 头）
@@ -82,7 +83,8 @@ python3 setup.py py2app
   "poll_interval": 180,
   "title_mode": "percent | custom",
   "title_custom": "D {d_pct}% | M {m_pct}%",
-  "update_expected_team_id": ""
+  "update_expected_team_id": "",
+  "language": "zh_CN"
 }
 ```
 
