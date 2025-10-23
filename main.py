@@ -48,7 +48,7 @@ def set_current_language(lang: str) -> None:
 
 
 # 文本字典
-I18N = {
+    I18N = {
     # 占位符/片段
     "version_prefix": {
         LANG_ZH_CN: "版本：",
@@ -237,6 +237,14 @@ I18N = {
         LANG_JA: "アフィリエイト",
         LANG_KO: "추천",
         LANG_RU: "Партнёры",
+    },
+    "menu_quit": {
+        LANG_ZH_CN: "退出",
+        LANG_EN: "Quit",
+        LANG_ZH_TW: "退出",
+        LANG_JA: "終了",
+        LANG_KO: "종료",
+        LANG_RU: "Выход",
     },
     "menu_language": {
         LANG_ZH_CN: "语言",
@@ -1004,6 +1012,11 @@ class PackycodeStatusApp(rumps.App):
         self._cfg = load_config()
         # 应用语言设置
         set_current_language(self._cfg.get("language", LANG_ZH_CN))
+        # 使用自定义的本地化“退出”按钮（避免默认 Quit 文案不可本地化）
+        try:
+            self.quit_button = None
+        except Exception:
+            pass
         self._lock = threading.RLock()
         self._last_data: Dict[str, Any] = {}
         self._last_error: Optional[str] = None
@@ -1126,6 +1139,8 @@ class PackycodeStatusApp(rumps.App):
             # 移除根目录“在线更新”入口，改由“检查更新”对话框触发
             {_t("menu_affiliates"): self._build_affiliates_menu_items()},
             None,
+            rumps.MenuItem(_t("menu_quit"), callback=self.quit_app),
+            None,
             self.info_version,
         ])
         # 先清空旧菜单，避免重复绑定 MenuItem
@@ -1220,6 +1235,12 @@ class PackycodeStatusApp(rumps.App):
     # ------------- 菜单回调 -------------
     def refresh_now(self, _: Optional[rumps.MenuItem] = None):
         self._refresh(force=True)
+
+    def quit_app(self, _: Optional[rumps.MenuItem] = None):
+        try:
+            rumps.quit_application()
+        except Exception:
+            os._exit(0)
 
     def toggle_hidden(self, _: Optional[rumps.MenuItem] = None):
         with self._lock:
