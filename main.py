@@ -39,6 +39,22 @@ LANG_RU = "ru"
 _current_language = LANG_ZH_CN
 
 
+class LocalizedError(Exception):
+    def __init__(self, key: str, **kwargs):
+        self.key = key
+        self.kwargs = kwargs
+        super().__init__(key)
+
+    def message(self) -> str:
+        try:
+            return _t(self.key, **self.kwargs)
+        except Exception:
+            return self.key
+
+    def __str__(self) -> str:
+        return self.message()
+
+
 def set_current_language(lang: str) -> None:
     global _current_language
     if lang in {LANG_ZH_CN, LANG_EN, LANG_ZH_TW, LANG_JA, LANG_KO, LANG_RU}:
@@ -48,7 +64,7 @@ def set_current_language(lang: str) -> None:
 
 
 # 文本字典
-    I18N = {
+I18N = {
     # 占位符/片段
     "version_prefix": {
         LANG_ZH_CN: "版本：",
@@ -789,11 +805,98 @@ def _t(key: str, **kwargs) -> str:
     # 防御：若打包的旧版本缺失 I18N，避免 NameError
     lang = _current_language
     table = globals().get('I18N', {}).get(key, {})
-    text = table.get(lang) or table.get(LANG_ZH_CN) or key
+    text = table.get(lang) or table.get(LANG_ZH_CN)
+    if not text:
+        text = _fallback_text(key)
+    if not text:
+        text = key
     try:
         return text.format(**kwargs)
     except Exception:
         return text
+
+
+def _fallback_text(key: str) -> Optional[str]:
+    """在缺少 I18N 表时提供最小中文兜底，避免界面显示 key 名。"""
+    zh = {
+        # 顶部信息
+        "status_uninitialized": "状态：未初始化",
+        "daily_placeholder": "每日：-/- (剩余 -)",
+        "requests_placeholder": "请求次数：-",
+        "usage_span_placeholder": "近30日：-",
+        "monthly_placeholder": "每月：-/- (剩余 -)",
+        "cycle_placeholder": "周期：-",
+        "renew_placeholder": "续费提醒：-",
+        "balance_placeholder": "余额：-",
+        "last_update_placeholder": "上次更新：-",
+        "token_placeholder": "Token：-",
+        "version_prefix": "版本：",
+        "status_ok": "状态：正常",
+        "status_no_data": "状态：无数据",
+        "title_no_data": "无数据",
+        "title_error": "错误",
+
+        # 菜单
+        "menu_refresh": "刷新",
+        "menu_account": "账号类型",
+        "menu_title_format": "标题格式",
+        "menu_language": "语言",
+        "menu_set_token": "设置 Token...",
+        "menu_toggle_hidden": "隐藏/展示",
+        "menu_open_dashboard": "打开控制台",
+        "menu_latency_monitor": "延迟监控",
+        "menu_check_update": "检查更新",
+        "menu_affiliates": "推广",
+        "menu_quit": "退出",
+
+        # 子菜单项
+        "account_shared": "共享（公交车）",
+        "account_private": "滴滴车（私有）",
+        "account_codex": "Codex 公交车",
+        "titlefmt_percent": "百分比",
+        "titlefmt_custom": "自定义...",
+        "titlefmt_show_requests": "显示请求次数",
+
+        # 顶部动态模板与前缀
+        "last_update_prefix": "上次更新：{time}",
+        "requests_prefix": "请求次数：{val}",
+        "usage_span_prefix": "近30日：{val}",
+        "balance_prefix": "余额：{val}",
+        "daily_full": "每日：{spent}/{limit} (剩余 {remain})",
+        "daily_no_limit": "每日：{spent}/- (剩余 -)",
+        "monthly_full": "每月：{spent}/{limit} (剩余 {remain})",
+        "monthly_no_limit": "每月：{spent}/- (剩余 -)",
+        "cycle_expired": "周期：{start}-{end}（已到期）",
+        "cycle_remaining": "周期：{start}-{end}（剩余{days}天）",
+        "renew_expired": "⚠️ 已到期，请尽快续费",
+        "renew_soon": "⚠️ 即将到期（剩余{days}天），建议提前续费",
+        "renew_prefix": "续费提醒：{text}",
+        "title_req_label": "请求",
+
+        # 错误与 Token 提示
+        "status_error_prefix": "状态：错误 - {err}",
+        "token_expired_label": "Token：已过期（{date}）",
+        "token_valid_until": "Token：{date}（{remain}）",
+        "notify_token_expired_subtitle": "Token 已过期",
+        "notify_token_expired_message": "请在“设置 Token...”中更换 JWT",
+        "error_no_token": "未设置 Token，请通过“设置 Token...”配置",
+        "error_http": "请求失败: HTTP {code}",
+
+        # 剩余时间
+        "rem_expired": "已过期",
+        "rem_days_hours": "剩余{days}天{hours}小时",
+        "rem_hours_minutes": "剩余{hours}小时{minutes}分钟",
+        "rem_minutes": "剩余{minutes}分钟",
+    }
+    return zh.get(key)
+
+
+def _format_error(err: Exception | str) -> str:
+    if isinstance(err, LocalizedError):
+        return err.message()
+    if isinstance(err, Exception):
+        return str(err)
+    return str(err)
 
 
 def _alert_buttons(title: str, message: str, buttons: list[str]) -> int:
@@ -1020,8 +1123,9 @@ class PackycodeStatusApp(rumps.App):
             pass
         self._lock = threading.RLock()
         self._last_data: Dict[str, Any] = {}
-        self._last_error: Optional[str] = None
+        self._last_error: Optional[Exception] = None
         self._last_usage: Optional[Dict[str, Any]] = None
+        self._last_sub_period: Optional[Tuple[datetime.date, datetime.date]] = None
         self._jwt_expired_notified: bool = False
 
         # 信息区（只读）
@@ -1207,31 +1311,26 @@ class PackycodeStatusApp(rumps.App):
             self._cfg["language"] = lang
             save_config(self._cfg)
             set_current_language(lang)
-        # 在回调之后异步重建菜单，避免在当前回调栈中修改 NSMenu 结构
-        self._schedule_rebuild_menu()
+        # 重建菜单并按新语言更新文案
+        self._rebuild_menu(getattr(self, "_renew_shown", False))
+        self._update_account_checkmarks()
+        self._update_title_format_checkmarks()
+        self._update_language_checkmarks()
+        self._render_cached_state()
+        self._refresh(force=True)
 
-    def _schedule_rebuild_menu(self):
-        def _do(timer: rumps.Timer):
-            try:
-                self._rebuild_menu(getattr(self, "_renew_shown", False))
-            finally:
-                try:
-                    timer.stop()
-                except Exception:
-                    pass
-                try:
-                    self._update_account_checkmarks()
-                    self._update_title_format_checkmarks()
-                    self._update_language_checkmarks()
-                    # 使用缓存的数据刷新展示文案到新语言，避免必发起网络请求
-                    self._update_ui_from_info(getattr(self, "_last_data", None) or None,
-                                              getattr(self, "_last_usage", None) or None,
-                                              None)
-                except Exception:
-                    pass
-        t = rumps.Timer(_do, 0.05)
-        self._lang_rebuild_timer = t
-        t.start()
+    def _render_cached_state(self) -> None:
+        try:
+            if self._last_error is not None:
+                self._update_ui_error(self._last_error)
+            else:
+                self._update_ui_from_info(
+                    self._last_data or None,
+                    self._last_usage,
+                    self._last_sub_period,
+                )
+        except Exception:
+            pass
 
     # ------------- 菜单回调 -------------
     def refresh_now(self, _: Optional[rumps.MenuItem] = None):
@@ -1697,16 +1796,18 @@ open "$TARGET_APP"
                 sub_period = self._maybe_fetch_subscription_period()
             except Exception:
                 sub_period = None
+            self._last_sub_period = sub_period
             self._last_error = None
             self._update_ui_from_info(info, usage, sub_period)
         except Exception as e:
-            self._last_error = str(e)
-            self._update_ui_error(str(e))
+            self._last_error = e
+            self._last_sub_period = None
+            self._update_ui_error(e)
 
     def _fetch_user_info(self) -> Optional[Dict[str, Any]]:
         token = (self._cfg.get("token") or "").strip()
         if not token:
-            raise RuntimeError(_t("error_no_token"))
+            raise LocalizedError("error_no_token")
 
         base, _dashboard = self._get_base_and_dashboard()
         url = f"{base}{USER_INFO_PATH}"
@@ -1719,7 +1820,7 @@ open "$TARGET_APP"
 
         resp = requests.get(url, headers=headers, timeout=10)
         if resp.status_code >= 400:
-            raise RuntimeError(_t("error_http", code=resp.status_code))
+            raise LocalizedError("error_http", code=resp.status_code)
 
         data = resp.json()
         # 兼容 { success, data } 或直接数据
@@ -1949,8 +2050,9 @@ open "$TARGET_APP"
         if getattr(self, "_renew_shown", False) != show_renew:
             self._rebuild_menu(show_renew)
 
-    def _update_ui_error(self, err: str):
-        self.info_title.title = _t("status_error_prefix", err=err)
+    def _update_ui_error(self, err: Exception | str):
+        err_text = _format_error(err)
+        self.info_title.title = _t("status_error_prefix", err=err_text)
         self.info_last.title = _t("last_update_prefix", time=now_str())
         self.info_requests.title = _t("requests_prefix", val="-")
         self.info_usage_span.title = _t("usage_span_placeholder")
