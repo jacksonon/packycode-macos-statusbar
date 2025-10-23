@@ -21,8 +21,7 @@
   - 设置 Token（支持 JWT 或 API Key，均使用 Bearer 头）
   - 标题格式：百分比 或 自定义模板
   - 刷新/隐藏标题/打开控制台/延迟监控（测速：https://packy.te.sb/）/推广（PackyCode / Codex）
-  - 检查更新：对比 GitHub 最新 release 的 tag 与本地版本（固定仓库：`jacksonon/packycode-macos-statusbar`）
-  - 在线更新：直接下载最新 release 的 macOS 压缩包并替换 .app 后重启（固定仓库，不可修改）
+  - 检查更新：对比 GitHub 最新 release 的 tag 与本地版本（固定仓库：`jacksonon/packycode-macos-statusbar`）。若检测到新版本，将在弹窗中展示“在线更新”按钮，可直接下载安装并替换应用。
 
 ## 运行
 ```bash
@@ -92,12 +91,13 @@ python3 setup.py py2app
 - 固定使用 `jacksonon/packycode-macos-statusbar`
 - 菜单中点击“检查更新”，会调用 GitHub Releases API 比较最新 `tag_name` 与当前版本，若有新版本会提示并可跳转至发布页下载
 
-在线更新：
+在线更新（从“检查更新”弹窗进入）：
 - 固定使用 `jacksonon/packycode-macos-statusbar`
-- 点击“在线更新”，会下载最新 release 的 zip，解压并自动替换本机正在使用的 `.app`（通过临时脚本在退出后替换），随后自动重启应用；若当前以源码方式运行，会打开 Finder 供你手动拖拽替换。
- - 安全校验：
-   - 若 Release 同时提供 `.sha256`/`.sha256sum`/`sha256.txt`，会自动核对压缩包 SHA256，不匹配则中止
-   - 下载后校验签名：优先运行 `codesign --verify` 与 `spctl --assess`；如在配置中设置 `update_expected_team_id`（Apple TeamIdentifier），会强制比对，不匹配则中止；若未配置但校验失败，会提示风险并让你确认是否继续
+- 下载最新 release 的 zip，解压并自动替换 `.app`（通过临时脚本在退出后替换），随后尝试自动重启；若当前以源码方式运行，会打开 Finder 供你手动拖拽替换。
+- 安全校验：
+  - 若 Release 同时提供 `.sha256`/`.sha256sum`/`sha256.txt`，会自动核对压缩包 SHA256，不匹配则中止
+  - 下载后校验签名：优先运行 `codesign --verify` 与 `spctl --assess`；如在配置中设置 `update_expected_team_id`（Apple TeamIdentifier），会强制比对，不匹配则中止；若未配置但校验失败，会提示风险并让你确认是否继续
+  - 更新脚本会在拷贝后执行 `xattr -dr com.apple.quarantine "$TARGET_APP"`，以减少首次打开时的 Gatekeeper 阻拦（请确保仅信任来源可靠的发行包）
 
 版本号来源：
 - 打包环境优先从 `.app/Contents/Info.plist` 的 `CFBundleShortVersionString` 读取

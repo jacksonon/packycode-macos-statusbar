@@ -18,6 +18,10 @@ from typing import Any, Dict, Optional, Tuple
 
 import requests
 import rumps
+try:
+    from AppKit import NSAlert
+except Exception:
+    NSAlert = None  # 运行在无 GUI/无 pyobjc 环境时兜底
 
 
 # ---------------------------
@@ -548,6 +552,30 @@ I18N = {
         LANG_KO: "열기",
         LANG_RU: "Открыть",
     },
+    "btn_ok": {
+        LANG_ZH_CN: "确定",
+        LANG_EN: "OK",
+        LANG_ZH_TW: "確定",
+        LANG_JA: "OK",
+        LANG_KO: "확인",
+        LANG_RU: "ОК",
+    },
+    "btn_online_update": {
+        LANG_ZH_CN: "在线更新",
+        LANG_EN: "Online Update",
+        LANG_ZH_TW: "線上更新",
+        LANG_JA: "オンライン更新",
+        LANG_KO: "온라인 업데이트",
+        LANG_RU: "Онлайн-обновление",
+    },
+    "update_changelog_prefix": {
+        LANG_ZH_CN: "更新内容：\n{notes}",
+        LANG_EN: "Release Notes:\n{notes}",
+        LANG_ZH_TW: "更新內容：\n{notes}",
+        LANG_JA: "更新内容:\n{notes}",
+        LANG_KO: "업데이트 내용:\n{notes}",
+        LANG_RU: "Изменения:\n{notes}",
+    },
     "update_check_title": {
         LANG_ZH_CN: "检查更新",
         LANG_EN: "Check Updates",
@@ -757,6 +785,35 @@ def _t(key: str, **kwargs) -> str:
         return text.format(**kwargs)
     except Exception:
         return text
+
+
+def _alert_buttons(title: str, message: str, buttons: list[str]) -> int:
+    """显示原生 NSAlert，多按钮无输入框。返回被点击按钮索引（0..n-1）。
+    若 NSAlert 不可用，则退化为 rumps.alert，返回 0 或 1。
+    """
+    try:
+        if NSAlert is None:
+            # 退化：仅支持 OK/Cancel 两个按钮
+            if not buttons:
+                buttons = [_t("btn_ok")]
+            if len(buttons) == 1:
+                rumps.alert(title=title, message=message, ok=buttons[0])
+                return 0
+            else:
+                res = rumps.alert(title=title, message=message, ok=buttons[0], cancel=True)
+                return 0 if res else 1
+        alert = NSAlert.alloc().init()
+        alert.setMessageText_(str(title))
+        alert.setInformativeText_(str(message))
+        for b in buttons:
+            alert.addButtonWithTitle_(str(b))
+        # NSAlertFirstButtonReturn == 1000
+        code = int(alert.runModal())
+        return max(0, code - 1000)
+    except Exception:
+        # 最简兜底
+        rumps.alert(title=title, message=message)
+        return 0
 
 
 # ---------------------------
@@ -1066,7 +1123,7 @@ class PackycodeStatusApp(rumps.App):
             rumps.MenuItem(_t("menu_open_dashboard"), callback=self.open_dashboard),
             rumps.MenuItem(_t("menu_latency_monitor"), callback=self.open_latency_monitor),
             rumps.MenuItem(_t("menu_check_update"), callback=self.check_update_now),
-            rumps.MenuItem(_t("menu_update_online"), callback=self.update_online_now),
+            # 移除根目录“在线更新”入口，改由“检查更新”对话框触发
             {_t("menu_affiliates"): self._build_affiliates_menu_items()},
             None,
             self.info_version,
@@ -1254,20 +1311,33 @@ class PackycodeStatusApp(rumps.App):
             data = resp.json()
             tag = (data.get("tag_name") or "").strip()
             html_url = (data.get("html_url") or f"https://github.com/{repo}/releases").strip()
+            notes = (data.get("body") or "").strip()
             if not tag:
                 raise RuntimeError("响应缺少 tag_name")
 
             cmp = self._compare_versions(tag, self._version)
             if cmp > 0:
+                # 构造更新信息（截断备注）
+                excerpt = notes
+                if len(excerpt) > 1000:
+                    excerpt = excerpt[:1000] + "\n..."
                 msg = _t("update_found_message", tag=tag, cur=self._version)
-                win = rumps.Window(title=_t("update_found_title"), message=msg, default_text="", ok=_t("btn_go"), cancel=_t("btn_cancel"))
-                res = win.run()
-                if res.clicked:
+                if excerpt:
+                    msg = msg + "\n\n" + _t("update_changelog_prefix", notes=excerpt)
+                # 提供“在线更新 / 前往 / 取消”
+                choice = _alert_buttons(
+                    _t("update_found_title"),
+                    msg,
+                    [_t("btn_online_update"), _t("btn_go"), _t("btn_cancel")],
+                )
+                if choice == 0:
+                    self.update_online_now()
+                elif choice == 1:
                     webbrowser.open(html_url)
             else:
-                rumps.alert(title=_t("update_check_title"), message=_t("update_latest_message"))
+                _alert_buttons(_t("update_check_title"), _t("update_latest_message"), [_t("btn_ok")])
         except Exception as e:
-            rumps.alert(title=_t("update_check_failed"), message=str(e))
+            _alert_buttons(_t("update_check_failed"), str(e), [_t("btn_ok")])
 
     # ------------- 在线更新（下载并替换 .app） -------------
     def _latest_release_asset(self, repo: str) -> Optional[Tuple[str, str, str, Optional[str]]]:
@@ -1335,18 +1405,17 @@ class PackycodeStatusApp(rumps.App):
         try:
             latest = self._latest_release_asset(repo)
             if not latest:
-                rumps.alert(title=_t("online_update"), message=_t("online_update_not_found"))
+                _alert_buttons(_t("online_update"), _t("online_update_not_found"), [_t("btn_ok")])
                 return
             tag, html_url, download_url, sha_url = latest
             cmp = self._compare_versions(tag, self._version)
             if cmp <= 0:
-                proceed = rumps.Window(
-                    title=_t("online_update"),
-                    message=_t("online_update_latest_confirm", cur=self._version),
-                    ok=_t("btn_continue"),
-                    cancel=_t("btn_cancel"),
-                ).run()
-                if not proceed.clicked:
+                choice = _alert_buttons(
+                    _t("online_update"),
+                    _t("online_update_latest_confirm", cur=self._version),
+                    [_t("btn_continue"), _t("btn_cancel")],
+                )
+                if choice != 0:
                     return
             tmp_dir = tempfile.mkdtemp(prefix="packycode-update-")
             zip_path = os.path.join(tmp_dir, "update.zip")
@@ -1371,7 +1440,7 @@ class PackycodeStatusApp(rumps.App):
                             if expected != actual:
                                 raise RuntimeError("校验失败：SHA256 不匹配")
                 except Exception as e:
-                    rumps.alert(title=_t("online_update"), message=_t("online_update_checksum_failed", err=str(e)))
+                    _alert_buttons(_t("online_update"), _t("online_update_checksum_failed", err=str(e)), [_t("btn_ok")])
                     return
             extract_dir = os.path.join(tmp_dir, "unzipped")
             os.makedirs(extract_dir, exist_ok=True)
@@ -1386,13 +1455,16 @@ class PackycodeStatusApp(rumps.App):
                 if new_app:
                     break
             if not new_app:
-                rumps.alert(title=_t("online_update"), message=_t("online_update_zip_missing"))
+                _alert_buttons(_t("online_update"), _t("online_update_zip_missing"), [_t("btn_ok")])
                 return
 
             target_app = self._current_app_bundle()
             if not target_app:
                 # 源码运行，打开解压目录供手动替换
-                rumps.notification(title=_t("online_update"), subtitle=_t("online_update_download_done"), message=_t("online_update_manual_replace"))
+                try:
+                    rumps.notification(title=_t("online_update"), subtitle=_t("online_update_download_done"), message=_t("online_update_manual_replace"))
+                except Exception:
+                    pass
                 subprocess.Popen(["open", extract_dir])
                 return
 
@@ -1412,7 +1484,7 @@ class PackycodeStatusApp(rumps.App):
             cur_bid = _bundle_id(target_app)
             new_bid = _bundle_id(new_app)
             if cur_bid and new_bid and cur_bid != new_bid:
-                rumps.alert(title=_t("online_update"), message=_t("online_update_bundle_mismatch", cur=cur_bid, new=new_bid))
+                _alert_buttons(_t("online_update"), _t("online_update_bundle_mismatch", cur=cur_bid, new=new_bid), [_t("btn_ok")])
                 return
 
             # 签名校验：codesign/spctl 与 TeamIdentifier（如配置）
@@ -1441,18 +1513,13 @@ class PackycodeStatusApp(rumps.App):
 
             if expected_team:
                 if not team_ok or rc1 != 0:
-                    rumps.alert(title=_t("online_update"), message=_t("online_update_codesign_failed"))
+                    _alert_buttons(_t("online_update"), _t("online_update_codesign_failed"), [_t("btn_ok")])
                     return
             else:
                 # 无强制 team，若校验失败，给出确认提示
                 if rc1 != 0 or rc2 != 0:
-                    cont = rumps.Window(
-                        title=_t("online_update"),
-                        message=_t("online_update_unverified_prompt"),
-                        ok=_t("btn_continue"),
-                        cancel=_t("btn_cancel"),
-                    ).run()
-                    if not cont.clicked:
+                    idx = _alert_buttons(_t("online_update"), _t("online_update_unverified_prompt"), [_t("btn_continue"), _t("btn_cancel")])
+                    if idx != 0:
                         return
 
             script_path = os.path.join(tmp_dir, "install.sh")
@@ -1468,26 +1535,22 @@ for i in {{1..60}}; do
 done
 rm -rf \"$TARGET_APP\"
 ditto \"$NEW_APP\" \"$TARGET_APP\"
+/usr/bin/xattr -dr com.apple.quarantine \"$TARGET_APP\" || true
 open \"$TARGET_APP\"
 """
             with open(script_path, "w", encoding="utf-8") as f:
                 f.write(script)
             os.chmod(script_path, 0o755)
 
-            res = rumps.Window(
-                title=_t("online_update"),
-                message=_t("online_update_replace_now"),
-                ok=_t("btn_replace_and_restart"),
-                cancel=_t("btn_later"),
-            ).run()
-            if not res.clicked:
+            idx = _alert_buttons(_t("online_update"), _t("online_update_replace_now"), [_t("btn_replace_and_restart"), _t("btn_later")])
+            if idx != 0:
                 subprocess.Popen(["open", extract_dir])
                 return
 
             subprocess.Popen(["bash", script_path])
             rumps.quit_application()
         except Exception as e:
-            rumps.alert(title=_t("online_update_failed"), message=str(e))
+            _alert_buttons(_t("online_update_failed"), str(e), [_t("btn_ok")])
 
     # ------------- 标题格式相关 -------------
     def _update_title_format_checkmarks(self):
