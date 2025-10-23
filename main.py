@@ -786,8 +786,9 @@ def set_current_language(lang: str) -> None:
 
 
 def _t(key: str, **kwargs) -> str:
+    # 防御：若打包的旧版本缺失 I18N，避免 NameError
     lang = _current_language
-    table = I18N.get(key, {})
+    table = globals().get('I18N', {}).get(key, {})
     text = table.get(lang) or table.get(LANG_ZH_CN) or key
     try:
         return text.format(**kwargs)
@@ -1557,7 +1558,8 @@ done
 rm -rf \"$TARGET_APP\"
 ditto \"$NEW_APP\" \"$TARGET_APP\"
 /usr/bin/xattr -dr com.apple.quarantine \"$TARGET_APP\" || true
-open \"$TARGET_APP\"
+chmod +x "$TARGET_APP/Contents/MacOS/*" || true
+open "$TARGET_APP"
 """
             with open(script_path, "w", encoding="utf-8") as f:
                 f.write(script)
