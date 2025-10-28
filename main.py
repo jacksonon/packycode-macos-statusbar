@@ -279,6 +279,30 @@ I18N = {
         LANG_KO: "반전 모드(미사용 강조)",
         LANG_RU: "Режим инверсии (выделять остаток)",
     },
+    "ring_text_enable": {
+        LANG_ZH_CN: "在圆环内显示百分比",
+        LANG_EN: "Show percentage in ring",
+        LANG_ZH_TW: "在圓環內顯示百分比",
+        LANG_JA: "リング内に割合を表示",
+        LANG_KO: "링 내부에 백분율 표시",
+        LANG_RU: "Показывать % в кольце",
+    },
+    "ring_text_show_percent": {
+        LANG_ZH_CN: "文本显示百分号",
+        LANG_EN: "Show % sign",
+        LANG_ZH_TW: "文字顯示百分號",
+        LANG_JA: "% 記号を表示",
+        LANG_KO: "% 기호 표시",
+        LANG_RU: "Показывать знак %",
+    },
+    "ring_text_show_label": {
+        LANG_ZH_CN: "文本显示来源标签 (D/M)",
+        LANG_EN: "Show source label (D/M)",
+        LANG_ZH_TW: "文字顯示來源標籤 (D/M)",
+        LANG_JA: "ソースラベルを表示 (D/M)",
+        LANG_KO: "원본 라벨 표시 (D/M)",
+        LANG_RU: "Показывать метку (D/M)",
+    },
     "ring_color_mode": {
         LANG_ZH_CN: "圆环颜色",
         LANG_EN: "Ring Color",
@@ -945,6 +969,9 @@ def _fallback_text(key: str) -> Optional[str]:
         "ring_source_monthly": "每月进度",
         "ring_colored": "使用彩色圆环",
         "ring_reverse": "反转模式（高亮未使用）",
+        "ring_text_enable": "在圆环内显示百分比",
+        "ring_text_show_percent": "文本显示百分号",
+        "ring_text_show_label": "文本显示来源标签 (D/M)",
         "ring_color_mode": "圆环颜色",
         "ring_color_colorful": "彩色",
         "ring_color_green": "绿色",
@@ -1051,6 +1078,12 @@ DEFAULT_CONFIG = {
     "ring_reverse": False,
     # 颜色模式：colorful | green | blue | gradient
     "ring_color_mode": "colorful",
+    # 在圆环内显示百分比文字
+    "ring_text_enabled": False,
+    # 文本是否显示百分号
+    "ring_text_percent_sign": True,
+    # 文本是否显示来源标签（D/M）
+    "ring_text_show_label": False,
     # 期望的 Apple TeamIdentifier（可选，用于强校验签名）
     "update_expected_team_id": "",
     # 界面语言
@@ -1397,6 +1430,9 @@ class PackycodeStatusApp(rumps.App):
         self.item_ring_enable = rumps.MenuItem(_t("ring_enable"), callback=self._toggle_ring_enable)
         self.item_ring_colored = rumps.MenuItem(_t("ring_colored"), callback=self._toggle_ring_colored)
         self.item_ring_reverse = rumps.MenuItem(_t("ring_reverse"), callback=self._toggle_ring_reverse)
+        self.item_ring_text_enable = rumps.MenuItem(_t("ring_text_enable"), callback=self._toggle_ring_text)
+        self.item_ring_text_show_percent = rumps.MenuItem(_t("ring_text_show_percent"), callback=self._toggle_ring_text_percent)
+        self.item_ring_text_show_label = rumps.MenuItem(_t("ring_text_show_label"), callback=self._toggle_ring_text_label)
         self.item_ring_src_daily = rumps.MenuItem(_t("ring_source_daily"), callback=self._set_ring_daily)
         self.item_ring_src_monthly = rumps.MenuItem(_t("ring_source_monthly"), callback=self._set_ring_monthly)
         # 颜色模式
@@ -1408,6 +1444,9 @@ class PackycodeStatusApp(rumps.App):
             self.item_ring_enable,
             self.item_ring_colored,
             self.item_ring_reverse,
+            self.item_ring_text_enable,
+            self.item_ring_text_show_percent,
+            self.item_ring_text_show_label,
             {_t("ring_source"): [self.item_ring_src_daily, self.item_ring_src_monthly]},
             {_t("ring_color_mode"): [
                 self.item_ring_color_colorful,
@@ -1828,10 +1867,15 @@ open "$TARGET_APP"
         colored = bool(self._cfg.get("ring_colored", False))
         reverse = bool(self._cfg.get("ring_reverse", False))
         mode = (self._cfg.get("ring_color_mode") or "colorful").lower()
+        show_text = bool(self._cfg.get("ring_text_enabled", False))
         try:
             self.item_ring_enable.state = 1 if enabled else 0
             self.item_ring_colored.state = 1 if colored else 0
             self.item_ring_reverse.state = 1 if reverse else 0
+            self.item_ring_text_enable.state = 1 if show_text else 0
+            # 文本显示细项
+            self.item_ring_text_show_percent.state = 1 if bool(self._cfg.get("ring_text_percent_sign", True)) else 0
+            self.item_ring_text_show_label.state = 1 if bool(self._cfg.get("ring_text_show_label", False)) else 0
             self.item_ring_src_daily.state = 1 if src == "daily" else 0
             self.item_ring_src_monthly.state = 1 if src == "monthly" else 0
             # 颜色模式勾选
@@ -1918,6 +1962,33 @@ open "$TARGET_APP"
         with self._lock:
             cur = bool(self._cfg.get("ring_reverse", False))
             self._cfg["ring_reverse"] = not cur
+            save_config(self._cfg)
+            self._last_ring_val = None
+        self._update_ring_menu_checkmarks()
+        self._render_cached_state()
+
+    def _toggle_ring_text(self, _: Optional[rumps.MenuItem] = None):
+        with self._lock:
+            cur = bool(self._cfg.get("ring_text_enabled", False))
+            self._cfg["ring_text_enabled"] = not cur
+            save_config(self._cfg)
+            self._last_ring_val = None
+        self._update_ring_menu_checkmarks()
+        self._render_cached_state()
+
+    def _toggle_ring_text_percent(self, _: Optional[rumps.MenuItem] = None):
+        with self._lock:
+            cur = bool(self._cfg.get("ring_text_percent_sign", True))
+            self._cfg["ring_text_percent_sign"] = not cur
+            save_config(self._cfg)
+            self._last_ring_val = None
+        self._update_ring_menu_checkmarks()
+        self._render_cached_state()
+
+    def _toggle_ring_text_label(self, _: Optional[rumps.MenuItem] = None):
+        with self._lock:
+            cur = bool(self._cfg.get("ring_text_show_label", False))
+            self._cfg["ring_text_show_label"] = not cur
             save_config(self._cfg)
             self._last_ring_val = None
         self._update_ring_menu_checkmarks()
@@ -2439,10 +2510,18 @@ open "$TARGET_APP"
                 NSGraphicsContext,
                 NSBezierPath,
                 NSColor,
+                NSFont,
+                NSFontAttributeName,
+                NSForegroundColorAttributeName,
+                NSParagraphStyleAttributeName,
+                NSMutableParagraphStyle,
+                NSStrokeWidthAttributeName,
+                NSStrokeColorAttributeName,
                 NSCalibratedRGBColorSpace,
                 NSBitmapImageFileTypePNG,
                 NSMakeRect,
             )
+            from Foundation import NSString
         except Exception:
             return None
 
@@ -2542,6 +2621,46 @@ open "$TARGET_APP"
             else:
                 NSColor.blackColor().set()
                 path.stroke()
+
+            # 文字：在圆环内显示百分比
+            try:
+                if bool(self._cfg.get("ring_text_enabled", False)):
+                    val = int(percent)
+                    show_pct = bool(self._cfg.get("ring_text_percent_sign", True))
+                    text = f"{val}%" if show_pct else f"{val}"
+                    if bool(self._cfg.get("ring_text_show_label", False)):
+                        src = (self._cfg.get("ring_source") or "daily").lower()
+                        prefix = "D" if src != "monthly" else "M"
+                        text = f"{prefix} {text}"
+                    # 字号根据位数微调
+                    fs = 8.0 if percent < 100 else 7.0
+                    para = NSMutableParagraphStyle.alloc().init()
+                    try:
+                        para.setAlignment_(1)  # center
+                    except Exception:
+                        pass
+                    # 颜色：模板模式下用黑色（交给系统反色）；彩色模式下用白+黑描边增强对比
+                    if bool(self._cfg.get("ring_colored", False)):
+                        attrs = {
+                            NSFontAttributeName: NSFont.boldSystemFontOfSize_(fs),
+                            NSForegroundColorAttributeName: NSColor.whiteColor(),
+                            NSStrokeWidthAttributeName: -3.0,
+                            NSStrokeColorAttributeName: NSColor.blackColor(),
+                            NSParagraphStyleAttributeName: para,
+                        }
+                    else:
+                        attrs = {
+                            NSFontAttributeName: NSFont.boldSystemFontOfSize_(fs),
+                            NSForegroundColorAttributeName: NSColor.blackColor(),
+                            NSParagraphStyleAttributeName: para,
+                        }
+                    ns_str = NSString.stringWithString_(text)
+                    # 文本矩形（略微上移与缩放）
+                    trh = 9.0
+                    rect_text = NSMakeRect(0.0, (height - trh) / 2.0 - 0.5, width, trh)
+                    ns_str.drawInRect_withAttributes_(rect_text, attrs)
+            except Exception:
+                pass
 
             NSGraphicsContext.restoreGraphicsState()
 
