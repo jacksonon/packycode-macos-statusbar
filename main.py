@@ -1302,6 +1302,8 @@ class PackycodeStatusApp(rumps.App):
         self._base_icon_path: Optional[str] = icon
         self._ring_icon_path: Optional[str] = os.path.join(CONFIG_DIR, "ring_icon.png")
         self._last_ring_val: Optional[int] = None  # 0..100 整数缓存，避免频繁重绘
+        # 圆环图标上次渲染状态签名（包含百分比、配色与文字内容等），用于决定是否需要重绘
+        self._last_ring_key: Optional[str] = None
 
         # 信息区（只读）
         self.info_title = rumps.MenuItem(_t("status_uninitialized"))
@@ -2003,6 +2005,7 @@ open "$TARGET_APP"
             save_config(self._cfg)
             # 强制下次重绘
             self._last_ring_val = None
+            self._last_ring_key = None
         self._update_ring_menu_checkmarks()
         self._render_cached_state()
 
@@ -2012,6 +2015,7 @@ open "$TARGET_APP"
             self._cfg["ring_reverse"] = not cur
             save_config(self._cfg)
             self._last_ring_val = None
+            self._last_ring_key = None
         self._update_ring_menu_checkmarks()
         self._render_cached_state()
 
@@ -2021,6 +2025,7 @@ open "$TARGET_APP"
             self._cfg["ring_text_enabled"] = not cur
             save_config(self._cfg)
             self._last_ring_val = None
+            self._last_ring_key = None
         self._update_ring_menu_checkmarks()
         self._render_cached_state()
 
@@ -2030,6 +2035,7 @@ open "$TARGET_APP"
             self._cfg["ring_text_percent_sign"] = not cur
             save_config(self._cfg)
             self._last_ring_val = None
+            self._last_ring_key = None
         self._update_ring_menu_checkmarks()
         self._render_cached_state()
 
@@ -2039,6 +2045,7 @@ open "$TARGET_APP"
             self._cfg["ring_text_show_label"] = not cur
             save_config(self._cfg)
             self._last_ring_val = None
+            self._last_ring_key = None
         self._update_ring_menu_checkmarks()
         self._render_cached_state()
 
@@ -2047,6 +2054,7 @@ open "$TARGET_APP"
             self._cfg["ring_text_mode"] = "percent"
             save_config(self._cfg)
             self._last_ring_val = None
+            self._last_ring_key = None
         self._update_ring_menu_checkmarks()
         self._render_cached_state()
 
@@ -2055,6 +2063,7 @@ open "$TARGET_APP"
             self._cfg["ring_text_mode"] = "calls"
             save_config(self._cfg)
             self._last_ring_val = None
+            self._last_ring_key = None
         self._update_ring_menu_checkmarks()
         self._render_cached_state()
 
@@ -2063,6 +2072,7 @@ open "$TARGET_APP"
             self._cfg["ring_text_mode"] = "spent"
             save_config(self._cfg)
             self._last_ring_val = None
+            self._last_ring_key = None
         self._update_ring_menu_checkmarks()
         self._render_cached_state()
 
@@ -2071,6 +2081,7 @@ open "$TARGET_APP"
             self._cfg["ring_color_mode"] = "colorful"
             save_config(self._cfg)
             self._last_ring_val = None
+            self._last_ring_key = None
         self._update_ring_menu_checkmarks()
         self._render_cached_state()
 
@@ -2079,6 +2090,7 @@ open "$TARGET_APP"
             self._cfg["ring_color_mode"] = "green"
             save_config(self._cfg)
             self._last_ring_val = None
+            self._last_ring_key = None
         self._update_ring_menu_checkmarks()
         self._render_cached_state()
 
@@ -2087,6 +2099,7 @@ open "$TARGET_APP"
             self._cfg["ring_color_mode"] = "blue"
             save_config(self._cfg)
             self._last_ring_val = None
+            self._last_ring_key = None
         self._update_ring_menu_checkmarks()
         self._render_cached_state()
 
@@ -2095,6 +2108,7 @@ open "$TARGET_APP"
             self._cfg["ring_color_mode"] = "gradient"
             save_config(self._cfg)
             self._last_ring_val = None
+            self._last_ring_key = None
         self._update_ring_menu_checkmarks()
         self._render_cached_state()
 
@@ -2514,6 +2528,52 @@ open "$TARGET_APP"
             return title
 
     # ------------- 圆环图标渲染 -------------
+    def _compute_ring_text(self, percent: int) -> str:
+        """根据当前配置与数据，计算圆环内部需显示的文本。如果未启用则返回空串。"""
+        try:
+            if not bool(self._cfg.get("ring_text_enabled", False)):
+                return ""
+            src = (self._cfg.get("ring_source") or "daily").lower()
+            mode_txt = (self._cfg.get("ring_text_mode") or "percent").lower()
+            if mode_txt == "calls":
+                calls = None
+                try:
+                    u = getattr(self, "_last_usage", None) or {}
+                    tu = u.get("today_usage") or {}
+                    calls = int(tu.get("api_calls")) if (tu and tu.get("api_calls") is not None) else None
+                except Exception:
+                    calls = None
+                text = str(calls) if calls is not None else "-"
+            elif mode_txt == "spent":
+                v = None
+                try:
+                    info = getattr(self, "_last_data", None) or {}
+                    if src == "monthly":
+                        v = float(info.get("monthly_spent_usd")) if info.get("monthly_spent_usd") is not None else None
+                    else:
+                        v = float(info.get("daily_spent_usd")) if info.get("daily_spent_usd") is not None else None
+                except Exception:
+                    v = None
+                if v is None:
+                    text = "-"
+                else:
+                    if v >= 1000:
+                        text = "999+"
+                    elif v >= 10:
+                        text = f"{int(v):d}"
+                    else:
+                        text = f"{v:.1f}"
+            else:
+                val = int(percent)
+                show_pct = bool(self._cfg.get("ring_text_percent_sign", True))
+                text = f"{val}%" if show_pct else f"{val}"
+            if bool(self._cfg.get("ring_text_show_label", False)):
+                prefix = "D" if src != "monthly" else "M"
+                text = f"{prefix} {text}"
+            return text
+        except Exception:
+            return ""
+
     def _apply_ring_icon(self, d_pct: Optional[float], m_pct: Optional[float]) -> None:
         try:
             enabled = bool(self._cfg.get("ring_enabled", False))
@@ -2527,6 +2587,7 @@ open "$TARGET_APP"
                     if self.icon != self._base_icon_path:
                         self.icon = self._base_icon_path
                 self._last_ring_val = None
+                self._last_ring_key = None
                 return
 
             # 选择来源
@@ -2543,7 +2604,13 @@ open "$TARGET_APP"
                 self._last_ring_val = None
                 return
             iv = int(max(0, min(100, round(val))))
-            if self._last_ring_val is not None and self._last_ring_val == iv:
+            # 计算当前渲染签名：百分比、配色模式/反转、以及内部文字
+            colored = bool(self._cfg.get("ring_colored", False))
+            mode = (self._cfg.get("ring_color_mode") or "colorful").lower()
+            reverse = bool(self._cfg.get("ring_reverse", False))
+            text = self._compute_ring_text(iv)
+            cur_key = f"{iv}|{colored}|{mode}|{reverse}|{text}"
+            if self._last_ring_key is not None and self._last_ring_key == cur_key:
                 return
 
             # 绘制 PNG，并将应用图标切换为模板模式
@@ -2557,6 +2624,7 @@ open "$TARGET_APP"
                     pass
                 self.icon = out_path
                 self._last_ring_val = iv
+                self._last_ring_key = cur_key
             else:
                 # 失败退回基础图标
                 try:
@@ -2566,11 +2634,13 @@ open "$TARGET_APP"
                 if self._base_icon_path:
                     self.icon = self._base_icon_path
                     self._last_ring_val = None
+                    self._last_ring_key = None
         except Exception:
             try:
                 if self._base_icon_path:
                     self.icon = self._base_icon_path
                     self._last_ring_val = None
+                    self._last_ring_key = None
             except Exception:
                 pass
 
@@ -2696,50 +2766,8 @@ open "$TARGET_APP"
 
             # 文字：在圆环内显示内容（百分比/调用次数/使用金额）
             try:
-                if bool(self._cfg.get("ring_text_enabled", False)):
-                    src = (self._cfg.get("ring_source") or "daily").lower()
-                    mode_txt = (self._cfg.get("ring_text_mode") or "percent").lower()
-                    text = ""
-                    if mode_txt == "calls":
-                        # 今日调用次数
-                        calls = None
-                        try:
-                            u = getattr(self, "_last_usage", None) or {}
-                            tu = u.get("today_usage") or {}
-                            calls = int(tu.get("api_calls")) if (tu and tu.get("api_calls") is not None) else None
-                        except Exception:
-                            calls = None
-                        text = str(calls) if calls is not None else "-"
-                    elif mode_txt == "spent":
-                        # 已用金额（按来源）
-                        v = None
-                        try:
-                            info = getattr(self, "_last_data", None) or {}
-                            if src == "monthly":
-                                v = float(info.get("monthly_spent_usd")) if info.get("monthly_spent_usd") is not None else None
-                            else:
-                                v = float(info.get("daily_spent_usd")) if info.get("daily_spent_usd") is not None else None
-                        except Exception:
-                            v = None
-                        if v is None:
-                            text = "-"
-                        else:
-                            # 简洁格式：<10 保留1位小数；>=10 取整；>=1000 显示999+
-                            if v >= 1000:
-                                text = "999+"
-                            elif v >= 10:
-                                text = f"{int(v):d}"
-                            else:
-                                text = f"{v:.1f}"
-                    else:
-                        # 百分比
-                        val = int(percent)
-                        show_pct = bool(self._cfg.get("ring_text_percent_sign", True))
-                        text = f"{val}%" if show_pct else f"{val}"
-                    # 可选来源标签（D/M）
-                    if bool(self._cfg.get("ring_text_show_label", False)):
-                        prefix = "D" if src != "monthly" else "M"
-                        text = f"{prefix} {text}"
+                text = self._compute_ring_text(percent)
+                if text:
                     # 字号根据位数微调
                     fs = 8.0 if percent < 100 else 7.0
                     para = NSMutableParagraphStyle.alloc().init()
