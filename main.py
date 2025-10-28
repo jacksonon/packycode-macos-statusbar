@@ -75,9 +75,9 @@ I18N = {
         LANG_RU: "Версия: ",
     },
     "title_req_label": {
-        LANG_ZH_CN: "请求",
+        LANG_ZH_CN: "调用",
         LANG_EN: "Req",
-        LANG_ZH_TW: "請求",
+        LANG_ZH_TW: "調用",
         LANG_JA: "リクエスト",
         LANG_KO: "요청",
         LANG_RU: "Запрос",
@@ -109,9 +109,9 @@ I18N = {
         LANG_RU: "День: -/- (осталось -)",
     },
     "requests_placeholder": {
-        LANG_ZH_CN: "请求次数：-",
+        LANG_ZH_CN: "调用次数：-",
         LANG_EN: "Requests: -",
-        LANG_ZH_TW: "請求次數：-",
+        LANG_ZH_TW: "調用次數：-",
         LANG_JA: "リクエスト数：-",
         LANG_KO: "요청 수: -",
         LANG_RU: "Запросов: -",
@@ -263,6 +263,62 @@ I18N = {
         LANG_KO: "링 소스",
         LANG_RU: "Источник кольца",
     },
+    "ring_colored": {
+        LANG_ZH_CN: "使用彩色圆环",
+        LANG_EN: "Use colored ring",
+        LANG_ZH_TW: "使用彩色環",
+        LANG_JA: "カラー リングを使用",
+        LANG_KO: "컬러 링 사용",
+        LANG_RU: "Цветное кольцо",
+    },
+    "ring_reverse": {
+        LANG_ZH_CN: "反转模式（高亮未使用）",
+        LANG_EN: "Reverse mode (highlight unused)",
+        LANG_ZH_TW: "反轉模式（高亮未使用）",
+        LANG_JA: "反転表示（未使用を強調）",
+        LANG_KO: "반전 모드(미사용 강조)",
+        LANG_RU: "Режим инверсии (выделять остаток)",
+    },
+    "ring_color_mode": {
+        LANG_ZH_CN: "圆环颜色",
+        LANG_EN: "Ring Color",
+        LANG_ZH_TW: "圓環顏色",
+        LANG_JA: "リング色",
+        LANG_KO: "링 색상",
+        LANG_RU: "Цвет кольца",
+    },
+    "ring_color_colorful": {
+        LANG_ZH_CN: "彩色",
+        LANG_EN: "Colorful",
+        LANG_ZH_TW: "彩色",
+        LANG_JA: "カラフル",
+        LANG_KO: "컬러풀",
+        LANG_RU: "Разноцветный",
+    },
+    "ring_color_green": {
+        LANG_ZH_CN: "绿色",
+        LANG_EN: "Green",
+        LANG_ZH_TW: "綠色",
+        LANG_JA: "緑",
+        LANG_KO: "초록",
+        LANG_RU: "Зелёный",
+    },
+    "ring_color_blue": {
+        LANG_ZH_CN: "蓝色",
+        LANG_EN: "Blue",
+        LANG_ZH_TW: "藍色",
+        LANG_JA: "青",
+        LANG_KO: "파랑",
+        LANG_RU: "Синий",
+    },
+    "ring_color_gradient": {
+        LANG_ZH_CN: "渐变彩色",
+        LANG_EN: "Gradient",
+        LANG_ZH_TW: "漸變彩色",
+        LANG_JA: "グラデーション",
+        LANG_KO: "그라데이션",
+        LANG_RU: "Градиент",
+    },
     "ring_source_daily": {
         LANG_ZH_CN: "每日进度",
         LANG_EN: "Daily",
@@ -344,9 +400,9 @@ I18N = {
         LANG_RU: "Пользовательский...",
     },
     "titlefmt_show_requests": {
-        LANG_ZH_CN: "显示请求次数",
+        LANG_ZH_CN: "显示调用次数",
         LANG_EN: "Show Requests",
-        LANG_ZH_TW: "顯示請求次數",
+        LANG_ZH_TW: "顯示調用次數",
         LANG_JA: "リクエスト数を表示",
         LANG_KO: "요청 수 표시",
         LANG_RU: "Показывать запросы",
@@ -394,9 +450,9 @@ I18N = {
         LANG_RU: "Последнее обновление: {time}",
     },
     "requests_prefix": {
-        LANG_ZH_CN: "请求次数：{val}",
+        LANG_ZH_CN: "调用次数：{val}",
         LANG_EN: "Requests: {val}",
-        LANG_ZH_TW: "請求次數：{val}",
+        LANG_ZH_TW: "調用次數：{val}",
         LANG_JA: "リクエスト数：{val}",
         LANG_KO: "요청 수: {val}",
         LANG_RU: "Запросов: {val}",
@@ -783,9 +839,9 @@ I18N = {
         LANG_RU: "Токен не задан. Используйте 'Указать токен...'",
     },
     "error_http": {
-        LANG_ZH_CN: "请求失败: HTTP {code}",
+        LANG_ZH_CN: "调用失败: HTTP {code}",
         LANG_EN: "Request failed: HTTP {code}",
-        LANG_ZH_TW: "請求失敗: HTTP {code}",
+        LANG_ZH_TW: "調用失敗: HTTP {code}",
         LANG_JA: "リクエスト失敗: HTTP {code}",
         LANG_KO: "요청 실패: HTTP {code}",
         LANG_RU: "Ошибка запроса: HTTP {code}",
@@ -848,7 +904,7 @@ def _fallback_text(key: str) -> Optional[str]:
         # 顶部信息
         "status_uninitialized": "状态：未初始化",
         "daily_placeholder": "每日：-/- (剩余 -)",
-        "requests_placeholder": "请求次数：-",
+        "requests_placeholder": "调用次数：-",
         "usage_span_placeholder": "近30日：-",
         "monthly_placeholder": "每月：-/- (剩余 -)",
         "cycle_placeholder": "周期：-",
@@ -882,15 +938,22 @@ def _fallback_text(key: str) -> Optional[str]:
         "account_codex": "Codex 公交车",
         "titlefmt_percent": "百分比",
         "titlefmt_custom": "自定义...",
-        "titlefmt_show_requests": "显示请求次数",
+        "titlefmt_show_requests": "显示调用次数",
         "ring_enable": "在图标显示进度圆环",
         "ring_source": "圆环来源",
         "ring_source_daily": "每日进度",
         "ring_source_monthly": "每月进度",
+        "ring_colored": "使用彩色圆环",
+        "ring_reverse": "反转模式（高亮未使用）",
+        "ring_color_mode": "圆环颜色",
+        "ring_color_colorful": "彩色",
+        "ring_color_green": "绿色",
+        "ring_color_blue": "蓝色",
+        "ring_color_gradient": "渐变彩色",
 
         # 顶部动态模板与前缀
         "last_update_prefix": "上次更新：{time}",
-        "requests_prefix": "请求次数：{val}",
+        "requests_prefix": "调用次数：{val}",
         "usage_span_prefix": "近30日：{val}",
         "balance_prefix": "余额：{val}",
         "daily_full": "每日：{spent}/{limit} (剩余 {remain})",
@@ -902,7 +965,7 @@ def _fallback_text(key: str) -> Optional[str]:
         "renew_expired": "⚠️ 已到期，请尽快续费",
         "renew_soon": "⚠️ 即将到期（剩余{days}天），建议提前续费",
         "renew_prefix": "续费提醒：{text}",
-        "title_req_label": "请求",
+        "title_req_label": "调用",
 
         # 错误与 Token 提示
         "status_error_prefix": "状态：错误 - {err}",
@@ -911,7 +974,8 @@ def _fallback_text(key: str) -> Optional[str]:
         "notify_token_expired_subtitle": "Token 已过期",
         "notify_token_expired_message": "请在“设置 Token...”中更换 JWT",
         "error_no_token": "未设置 Token，请通过“设置 Token...”配置",
-        "error_http": "请求失败: HTTP {code}",
+        "error_http": "调用失败: HTTP {code}",
+        # 颜色预设无需手动输入
 
         # 剩余时间
         "rem_expired": "已过期",
@@ -981,6 +1045,12 @@ DEFAULT_CONFIG = {
     "ring_enabled": False,
     # daily | monthly
     "ring_source": "daily",
+    # 是否使用彩色圆环（默认系统单色模板）
+    "ring_colored": False,
+    # 反转模式：高亮未使用（默认高亮已使用）
+    "ring_reverse": False,
+    # 颜色模式：colorful | green | blue | gradient
+    "ring_color_mode": "colorful",
     # 期望的 Apple TeamIdentifier（可选，用于强校验签名）
     "update_expected_team_id": "",
     # 界面语言
@@ -1219,6 +1289,7 @@ class PackycodeStatusApp(rumps.App):
 
         # 进度圆环子菜单
         self.item_ring_enable = rumps.MenuItem(_t("ring_enable"), callback=self._toggle_ring_enable)
+        self.item_ring_colored = rumps.MenuItem(_t("ring_colored"), callback=self._toggle_ring_colored)
         self.item_ring_src_daily = rumps.MenuItem(_t("ring_source_daily"), callback=self._set_ring_daily)
         self.item_ring_src_monthly = rumps.MenuItem(_t("ring_source_monthly"), callback=self._set_ring_monthly)
 
@@ -1324,11 +1395,26 @@ class PackycodeStatusApp(rumps.App):
     def _build_ring_menu_items(self):
         # 重建每次都刷新文案
         self.item_ring_enable = rumps.MenuItem(_t("ring_enable"), callback=self._toggle_ring_enable)
+        self.item_ring_colored = rumps.MenuItem(_t("ring_colored"), callback=self._toggle_ring_colored)
+        self.item_ring_reverse = rumps.MenuItem(_t("ring_reverse"), callback=self._toggle_ring_reverse)
         self.item_ring_src_daily = rumps.MenuItem(_t("ring_source_daily"), callback=self._set_ring_daily)
         self.item_ring_src_monthly = rumps.MenuItem(_t("ring_source_monthly"), callback=self._set_ring_monthly)
+        # 颜色模式
+        self.item_ring_color_colorful = rumps.MenuItem(_t("ring_color_colorful"), callback=self._set_ring_color_mode_colorful)
+        self.item_ring_color_green = rumps.MenuItem(_t("ring_color_green"), callback=self._set_ring_color_mode_green)
+        self.item_ring_color_blue = rumps.MenuItem(_t("ring_color_blue"), callback=self._set_ring_color_mode_blue)
+        self.item_ring_color_gradient = rumps.MenuItem(_t("ring_color_gradient"), callback=self._set_ring_color_mode_gradient)
         return [
             self.item_ring_enable,
+            self.item_ring_colored,
+            self.item_ring_reverse,
             {_t("ring_source"): [self.item_ring_src_daily, self.item_ring_src_monthly]},
+            {_t("ring_color_mode"): [
+                self.item_ring_color_colorful,
+                self.item_ring_color_green,
+                self.item_ring_color_blue,
+                self.item_ring_color_gradient,
+            ]},
         ]
 
     def _build_language_menu_items(self):
@@ -1739,10 +1825,20 @@ open "$TARGET_APP"
     def _update_ring_menu_checkmarks(self):
         enabled = bool(self._cfg.get("ring_enabled", False))
         src = self._cfg.get("ring_source", "daily")
+        colored = bool(self._cfg.get("ring_colored", False))
+        reverse = bool(self._cfg.get("ring_reverse", False))
+        mode = (self._cfg.get("ring_color_mode") or "colorful").lower()
         try:
             self.item_ring_enable.state = 1 if enabled else 0
+            self.item_ring_colored.state = 1 if colored else 0
+            self.item_ring_reverse.state = 1 if reverse else 0
             self.item_ring_src_daily.state = 1 if src == "daily" else 0
             self.item_ring_src_monthly.state = 1 if src == "monthly" else 0
+            # 颜色模式勾选
+            self.item_ring_color_colorful.state = 1 if mode == "colorful" else 0
+            self.item_ring_color_green.state = 1 if mode == "green" else 0
+            self.item_ring_color_blue.state = 1 if mode == "blue" else 0
+            self.item_ring_color_gradient.state = 1 if mode == "gradient" else 0
         except Exception:
             pass
 
@@ -1805,6 +1901,57 @@ open "$TARGET_APP"
         with self._lock:
             self._cfg["ring_source"] = "monthly"
             save_config(self._cfg)
+        self._update_ring_menu_checkmarks()
+        self._render_cached_state()
+
+    def _toggle_ring_colored(self, _: Optional[rumps.MenuItem] = None):
+        with self._lock:
+            cur = bool(self._cfg.get("ring_colored", False))
+            self._cfg["ring_colored"] = not cur
+            save_config(self._cfg)
+            # 强制下次重绘
+            self._last_ring_val = None
+        self._update_ring_menu_checkmarks()
+        self._render_cached_state()
+
+    def _toggle_ring_reverse(self, _: Optional[rumps.MenuItem] = None):
+        with self._lock:
+            cur = bool(self._cfg.get("ring_reverse", False))
+            self._cfg["ring_reverse"] = not cur
+            save_config(self._cfg)
+            self._last_ring_val = None
+        self._update_ring_menu_checkmarks()
+        self._render_cached_state()
+
+    def _set_ring_color_mode_colorful(self, _: Optional[rumps.MenuItem] = None):
+        with self._lock:
+            self._cfg["ring_color_mode"] = "colorful"
+            save_config(self._cfg)
+            self._last_ring_val = None
+        self._update_ring_menu_checkmarks()
+        self._render_cached_state()
+
+    def _set_ring_color_mode_green(self, _: Optional[rumps.MenuItem] = None):
+        with self._lock:
+            self._cfg["ring_color_mode"] = "green"
+            save_config(self._cfg)
+            self._last_ring_val = None
+        self._update_ring_menu_checkmarks()
+        self._render_cached_state()
+
+    def _set_ring_color_mode_blue(self, _: Optional[rumps.MenuItem] = None):
+        with self._lock:
+            self._cfg["ring_color_mode"] = "blue"
+            save_config(self._cfg)
+            self._last_ring_val = None
+        self._update_ring_menu_checkmarks()
+        self._render_cached_state()
+
+    def _set_ring_color_mode_gradient(self, _: Optional[rumps.MenuItem] = None):
+        with self._lock:
+            self._cfg["ring_color_mode"] = "gradient"
+            save_config(self._cfg)
+            self._last_ring_val = None
         self._update_ring_menu_checkmarks()
         self._render_cached_state()
 
@@ -2174,7 +2321,7 @@ open "$TARGET_APP"
         monthly_spent = parse_float(info.get("monthly_spent_usd"))
         balance_str = info.get("balance_usd")
         balance = parse_float(balance_str) if balance_str is not None else None
-        # 从 usage 获取今日请求数
+        # 从 usage 获取今日调用数
         daily_requests: Optional[int] = None
         if usage and isinstance(usage, dict):
             try:
@@ -2259,8 +2406,10 @@ open "$TARGET_APP"
             # 绘制 PNG，并将应用图标切换为模板模式
             out_path = self._draw_ring_png(iv)
             if out_path and os.path.exists(out_path):
+                # 根据配置选择彩色或系统模板着色
+                colored = bool(self._cfg.get("ring_colored", False))
                 try:
-                    self.template = True  # 以模板方式着色
+                    self.template = False if colored else True
                 except Exception:
                     pass
                 self.icon = out_path
@@ -2321,7 +2470,13 @@ open "$TARGET_APP"
             track.stroke()
 
             # 进度弧（从 12 点方向开始，顺时针）
-            angle = 360.0 * (float(percent) / 100.0)
+            draw_pct = float(percent)
+            try:
+                if bool(self._cfg.get("ring_reverse", False)):
+                    draw_pct = max(0.0, min(100.0, 100.0 - draw_pct))
+            except Exception:
+                pass
+            angle = 360.0 * (draw_pct / 100.0)
             path = NSBezierPath.bezierPath()
             path.setLineWidth_(stroke)
             path.setLineCapStyle_(1)  # round caps for better look
@@ -2329,8 +2484,64 @@ open "$TARGET_APP"
                 path.appendBezierPathWithArcWithCenter_radius_startAngle_endAngle_clockwise_((width / 2.0, height / 2.0), (width - stroke) / 2.0, 90.0, 90.0 - angle, True)
             except Exception:
                 path.appendBezierPathWithArcWithCenter_radius_startAngle_endAngle_clockwise_((width / 2.0, height / 2.0), (width - stroke) / 2.0, 90.0, 90.0 - angle, True)
-            NSColor.blackColor().set()
-            path.stroke()
+            # 颜色：若启用彩色圆环，则按模式着色；否则使用黑色交由模板着色
+            try:
+                colored = bool(self._cfg.get("ring_colored", False))
+            except Exception:
+                colored = False
+            if colored:
+                mode = (self._cfg.get("ring_color_mode") or "colorful").lower()
+                if mode == "green":
+                    NSColor.colorWithCalibratedRed_green_blue_alpha_(0.12, 0.75, 0.39, 1.0).set()
+                    path.stroke()
+                elif mode == "blue":
+                    NSColor.colorWithCalibratedRed_green_blue_alpha_(0.26, 0.52, 0.96, 1.0).set()
+                    path.stroke()
+                elif mode == "gradient":
+                    # 以多段弧模拟渐变
+                    segs = max(1, int(max(6.0, angle) / 8.0))
+                    for i in range(segs):
+                        t0 = float(i) / float(segs)
+                        t1 = float(i + 1) / float(segs)
+                        a0 = 90.0 - (t0 * angle)
+                        a1 = 90.0 - (t1 * angle)
+                        seg = NSBezierPath.bezierPath()
+                        seg.setLineWidth_(stroke)
+                        seg.setLineCapStyle_(1)
+                        try:
+                            seg.appendBezierPathWithArcWithCenter_radius_startAngle_endAngle_clockwise_((width / 2.0, height / 2.0), (width - stroke) / 2.0, a0, a1, True)
+                        except Exception:
+                            seg.appendBezierPathWithArcWithCenter_radius_startAngle_endAngle_clockwise_((width / 2.0, height / 2.0), (width - stroke) / 2.0, a0, a1, True)
+                        # 颜色从绿->黄->红渐变
+                        tm = (t0 + t1) / 2.0
+                        if tm <= 0.5:
+                            # 绿(0.12,0.75,0.39) 到 黄(1.0,0.84,0.26)
+                            k = tm / 0.5
+                            r = 0.12 + (1.0 - 0.12) * k
+                            g = 0.75 + (0.84 - 0.75) * k
+                            b = 0.39 + (0.26 - 0.39) * k
+                        else:
+                            # 黄(1.0,0.84,0.26) 到 红(0.94,0.33,0.31)
+                            k = (tm - 0.5) / 0.5
+                            r = 1.0 + (0.94 - 1.0) * k
+                            g = 0.84 + (0.33 - 0.84) * k
+                            b = 0.26 + (0.31 - 0.26) * k
+                        NSColor.colorWithCalibratedRed_green_blue_alpha_(r, g, b, 1.0).set()
+                        seg.stroke()
+                else:
+                    # colorful：阈值配色（绿/橙/红按已用百分比）
+                    used_pct = float(percent)
+                    if used_pct <= 60:
+                        col = NSColor.colorWithCalibratedRed_green_blue_alpha_(0.12, 0.75, 0.39, 1.0)
+                    elif used_pct <= 85:
+                        col = NSColor.colorWithCalibratedRed_green_blue_alpha_(1.00, 0.67, 0.26, 1.0)
+                    else:
+                        col = NSColor.colorWithCalibratedRed_green_blue_alpha_(0.94, 0.33, 0.31, 1.0)
+                    col.set()
+                    path.stroke()
+            else:
+                NSColor.blackColor().set()
+                path.stroke()
 
             NSGraphicsContext.restoreGraphicsState()
 

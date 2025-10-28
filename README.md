@@ -106,4 +106,4 @@ python3 setup.py py2app
 ## 已知限制
 - 运行环境需 macOS（依赖 rumps/pyobjc）
 - 本地无法读取浏览器 Cookie，因此需要手动粘贴 JWT 或 API Key
-- 网络请求失败时会在菜单显示错误提示，不会崩溃
+- 网络调用失败时会在菜单显示错误提示，不会崩溃
