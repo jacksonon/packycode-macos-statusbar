@@ -238,13 +238,46 @@ I18N = {
         LANG_KO: "업데이트 확인",
         LANG_RU: "Проверить обновления",
     },
-    "menu_update_online": {
-        LANG_ZH_CN: "在线更新",
-        LANG_EN: "Online Update",
-        LANG_ZH_TW: "線上更新",
-        LANG_JA: "オンライン更新",
-        LANG_KO: "온라인 업데이트",
-        LANG_RU: "Онлайн-обновление",
+    # 进度圆环菜单
+    "menu_ring": {
+        LANG_ZH_CN: "进度圆环",
+        LANG_EN: "Ring",
+        LANG_ZH_TW: "進度環",
+        LANG_JA: "進捗リング",
+        LANG_KO: "링",
+        LANG_RU: "Кольцо",
+    },
+    "ring_enable": {
+        LANG_ZH_CN: "在图标显示进度圆环",
+        LANG_EN: "Show ring in icon",
+        LANG_ZH_TW: "在圖示顯示進度環",
+        LANG_JA: "アイコンにリングを表示",
+        LANG_KO: "아이콘에 링 표시",
+        LANG_RU: "Показывать кольцо в иконке",
+    },
+    "ring_source": {
+        LANG_ZH_CN: "圆环来源",
+        LANG_EN: "Ring Source",
+        LANG_ZH_TW: "環來源",
+        LANG_JA: "リングのソース",
+        LANG_KO: "링 소스",
+        LANG_RU: "Источник кольца",
+    },
+    "ring_source_daily": {
+        LANG_ZH_CN: "每日进度",
+        LANG_EN: "Daily",
+        LANG_ZH_TW: "每日進度",
+        LANG_JA: "日次",
+        LANG_KO: "일일",
+        LANG_RU: "День",
+    },
+    "ring_source_monthly": {
+        LANG_ZH_CN: "每月进度",
+        LANG_EN: "Monthly",
+        LANG_ZH_TW: "每月進度",
+        LANG_JA: "月次",
+        LANG_KO: "월간",
+        LANG_RU: "Месяц",
     },
     "menu_affiliates": {
         LANG_ZH_CN: "推广",
@@ -584,14 +617,7 @@ I18N = {
         LANG_KO: "확인",
         LANG_RU: "ОК",
     },
-    "btn_online_update": {
-        LANG_ZH_CN: "在线更新",
-        LANG_EN: "Online Update",
-        LANG_ZH_TW: "線上更新",
-        LANG_JA: "オンライン更新",
-        LANG_KO: "온라인 업데이트",
-        LANG_RU: "Онлайн-обновление",
-    },
+    # 不再提供在线更新按钮
     "update_changelog_prefix": {
         LANG_ZH_CN: "更新内容：\n{notes}",
         LANG_EN: "Release Notes:\n{notes}",
@@ -846,6 +872,7 @@ def _fallback_text(key: str) -> Optional[str]:
         "menu_open_dashboard": "打开控制台",
         "menu_latency_monitor": "延迟监控",
         "menu_check_update": "检查更新",
+        "menu_ring": "进度圆环",
         "menu_affiliates": "推广",
         "menu_quit": "退出",
 
@@ -856,6 +883,10 @@ def _fallback_text(key: str) -> Optional[str]:
         "titlefmt_percent": "百分比",
         "titlefmt_custom": "自定义...",
         "titlefmt_show_requests": "显示请求次数",
+        "ring_enable": "在图标显示进度圆环",
+        "ring_source": "圆环来源",
+        "ring_source_daily": "每日进度",
+        "ring_source_monthly": "每月进度",
 
         # 顶部动态模板与前缀
         "last_update_prefix": "上次更新：{time}",
@@ -946,6 +977,10 @@ DEFAULT_CONFIG = {
     "title_include_requests": False,
     # 自定义模板占位符：{d_pct} {m_pct} {d_spent} {d_limit} {m_spent} {m_limit} {bal} {d_req}
     "title_custom": "D {d_pct}% | M {m_pct}%",
+    # 状态栏进度圆环
+    "ring_enabled": False,
+    # daily | monthly
+    "ring_source": "daily",
     # 期望的 Apple TeamIdentifier（可选，用于强校验签名）
     "update_expected_team_id": "",
     # 界面语言
@@ -1127,6 +1162,9 @@ class PackycodeStatusApp(rumps.App):
         self._last_usage: Optional[Dict[str, Any]] = None
         self._last_sub_period: Optional[Tuple[datetime.date, datetime.date]] = None
         self._jwt_expired_notified: bool = False
+        self._base_icon_path: Optional[str] = icon
+        self._ring_icon_path: Optional[str] = os.path.join(CONFIG_DIR, "ring_icon.png")
+        self._last_ring_val: Optional[int] = None  # 0..100 整数缓存，避免频繁重绘
 
         # 信息区（只读）
         self.info_title = rumps.MenuItem(_t("status_uninitialized"))
@@ -1179,6 +1217,11 @@ class PackycodeStatusApp(rumps.App):
         self.item_title_custom = rumps.MenuItem(_t("titlefmt_custom"), callback=self._set_title_custom)
         self.item_title_show_requests = rumps.MenuItem(_t("titlefmt_show_requests"), callback=self._toggle_title_requests)
 
+        # 进度圆环子菜单
+        self.item_ring_enable = rumps.MenuItem(_t("ring_enable"), callback=self._toggle_ring_enable)
+        self.item_ring_src_daily = rumps.MenuItem(_t("ring_source_daily"), callback=self._set_ring_daily)
+        self.item_ring_src_monthly = rumps.MenuItem(_t("ring_source_monthly"), callback=self._set_ring_monthly)
+
         # 推广链接子菜单在重建时动态创建（避免跨菜单复用）
         self.menu_affiliates = None
 
@@ -1196,6 +1239,7 @@ class PackycodeStatusApp(rumps.App):
         # 初始选中账号类型
         self._update_account_checkmarks()
         self._update_title_format_checkmarks()
+        self._update_ring_menu_checkmarks()
         self._update_language_checkmarks()
         # 如果配置为隐藏，应用标题置空
         if self._cfg.get("hidden"):
@@ -1235,6 +1279,7 @@ class PackycodeStatusApp(rumps.App):
             rumps.MenuItem(_t("menu_refresh"), callback=self.refresh_now),
             {_t("menu_account"): self._build_account_menu_items()},
             {_t("menu_title_format"): self._build_title_menu_items()},
+            {_t("menu_ring"): self._build_ring_menu_items()},
             {_t("menu_language"): self._build_language_menu_items()},
             rumps.MenuItem(_t("menu_set_token"), callback=self.set_token),
             rumps.MenuItem(_t("menu_toggle_hidden"), callback=self.toggle_hidden),
@@ -1259,6 +1304,7 @@ class PackycodeStatusApp(rumps.App):
         try:
             self._update_account_checkmarks()
             self._update_title_format_checkmarks()
+            self._update_ring_menu_checkmarks()
             self._update_language_checkmarks()
         except Exception:
             pass
@@ -1274,6 +1320,16 @@ class PackycodeStatusApp(rumps.App):
         self.item_title_custom = rumps.MenuItem(_t("titlefmt_custom"), callback=self._set_title_custom)
         self.item_title_show_requests = rumps.MenuItem(_t("titlefmt_show_requests"), callback=self._toggle_title_requests)
         return [self.item_title_percent, self.item_title_custom, self.item_title_show_requests]
+
+    def _build_ring_menu_items(self):
+        # 重建每次都刷新文案
+        self.item_ring_enable = rumps.MenuItem(_t("ring_enable"), callback=self._toggle_ring_enable)
+        self.item_ring_src_daily = rumps.MenuItem(_t("ring_source_daily"), callback=self._set_ring_daily)
+        self.item_ring_src_monthly = rumps.MenuItem(_t("ring_source_monthly"), callback=self._set_ring_monthly)
+        return [
+            self.item_ring_enable,
+            {_t("ring_source"): [self.item_ring_src_daily, self.item_ring_src_monthly]},
+        ]
 
     def _build_language_menu_items(self):
         self.item_lang_zh_cn = rumps.MenuItem("简体中文", callback=lambda _=None: self._set_language(LANG_ZH_CN))
@@ -1445,15 +1501,13 @@ class PackycodeStatusApp(rumps.App):
                 msg = _t("update_found_message", tag=tag, cur=self._version)
                 if excerpt:
                     msg = msg + "\n\n" + _t("update_changelog_prefix", notes=excerpt)
-                # 提供“在线更新 / 前往 / 取消”
+                # 仅提供“前往 / 取消”
                 choice = _alert_buttons(
                     _t("update_found_title"),
                     msg,
-                    [_t("btn_online_update"), _t("btn_go"), _t("btn_cancel")],
+                    [_t("btn_go"), _t("btn_cancel")],
                 )
                 if choice == 0:
-                    self.update_online_now()
-                elif choice == 1:
                     webbrowser.open(html_url)
             else:
                 _alert_buttons(_t("update_check_title"), _t("update_latest_message"), [_t("btn_ok")])
@@ -1682,6 +1736,16 @@ open "$TARGET_APP"
         include_requests = bool(self._cfg.get("title_include_requests"))
         self.item_title_show_requests.state = 1 if include_requests else 0
 
+    def _update_ring_menu_checkmarks(self):
+        enabled = bool(self._cfg.get("ring_enabled", False))
+        src = self._cfg.get("ring_source", "daily")
+        try:
+            self.item_ring_enable.state = 1 if enabled else 0
+            self.item_ring_src_daily.state = 1 if src == "daily" else 0
+            self.item_ring_src_monthly.state = 1 if src == "monthly" else 0
+        except Exception:
+            pass
+
     def _set_title_percent(self, _: Optional[rumps.MenuItem] = None):
         with self._lock:
             self._cfg["title_mode"] = "percent"
@@ -1719,6 +1783,30 @@ open "$TARGET_APP"
             save_config(self._cfg)
         self._update_title_format_checkmarks()
         self._refresh(force=True)
+
+    # 进度圆环相关
+    def _toggle_ring_enable(self, _: Optional[rumps.MenuItem] = None):
+        with self._lock:
+            cur = bool(self._cfg.get("ring_enabled", False))
+            self._cfg["ring_enabled"] = not cur
+            save_config(self._cfg)
+        self._update_ring_menu_checkmarks()
+        # 立即渲染
+        self._render_cached_state()
+
+    def _set_ring_daily(self, _: Optional[rumps.MenuItem] = None):
+        with self._lock:
+            self._cfg["ring_source"] = "daily"
+            save_config(self._cfg)
+        self._update_ring_menu_checkmarks()
+        self._render_cached_state()
+
+    def _set_ring_monthly(self, _: Optional[rumps.MenuItem] = None):
+        with self._lock:
+            self._cfg["ring_source"] = "monthly"
+            save_config(self._cfg)
+        self._update_ring_menu_checkmarks()
+        self._render_cached_state()
 
     # ------------- 定时逻辑 -------------
     def _on_tick(self, _timer: rumps.Timer):
@@ -1928,6 +2016,8 @@ open "$TARGET_APP"
             # 隐藏续费提醒
             if getattr(self, "_renew_shown", False):
                 self._rebuild_menu(False)
+            # 复位图标
+            self._apply_ring_icon(None, None)
             return
 
         # 解析字段（参考 packycode-cost UserApiResponse 与转换逻辑）
@@ -2043,9 +2133,17 @@ open "$TARGET_APP"
         # 状态栏标题（根据设置）
         if self._cfg.get("hidden"):
             self.title = ""
+            # 仍然更新圆环图标
+            d_pct_val = min(100.0, (daily_spent / daily_limit) * 100.0) if daily_limit > 0 else 0.0
+            m_pct_val = min(100.0, (monthly_spent / monthly_limit) * 100.0) if monthly_limit > 0 else 0.0
+            self._apply_ring_icon(d_pct_val, m_pct_val)
             return
 
         self.title = self._make_title(info, usage)
+        # 更新图标圆环
+        d_pct_val = min(100.0, (daily_spent / daily_limit) * 100.0) if daily_limit > 0 else 0.0
+        m_pct_val = min(100.0, (monthly_spent / monthly_limit) * 100.0) if monthly_limit > 0 else 0.0
+        self._apply_ring_icon(d_pct_val, m_pct_val)
         # 重建菜单以切换“续费提醒”的可见性
         if getattr(self, "_renew_shown", False) != show_renew:
             self._rebuild_menu(show_renew)
@@ -2061,6 +2159,8 @@ open "$TARGET_APP"
         self._update_token_status()
         if not self._cfg.get("hidden"):
             self.title = _t("title_error")
+        # 错误时复位图标
+        self._apply_ring_icon(None, None)
         # 隐藏续费提醒
         if getattr(self, "_renew_shown", False):
             self._rebuild_menu(False)
@@ -2122,6 +2222,132 @@ open "$TARGET_APP"
             if include_requests and daily_requests is not None:
                 title = f"{title} | {_t('title_req_label')} {ctx['d_req']}"
             return title
+
+    # ------------- 圆环图标渲染 -------------
+    def _apply_ring_icon(self, d_pct: Optional[float], m_pct: Optional[float]) -> None:
+        try:
+            enabled = bool(self._cfg.get("ring_enabled", False))
+            if not enabled:
+                # 关闭圆环：恢复非模板图标
+                try:
+                    self.template = None
+                except Exception:
+                    pass
+                if self._base_icon_path:
+                    if self.icon != self._base_icon_path:
+                        self.icon = self._base_icon_path
+                self._last_ring_val = None
+                return
+
+            # 选择来源
+            src = (self._cfg.get("ring_source") or "daily").lower()
+            val = None
+            if src == "monthly":
+                val = m_pct
+            else:
+                val = d_pct
+            if val is None:
+                # 无数据时恢复基础图标
+                if self._base_icon_path and self.icon != self._base_icon_path:
+                    self.icon = self._base_icon_path
+                self._last_ring_val = None
+                return
+            iv = int(max(0, min(100, round(val))))
+            if self._last_ring_val is not None and self._last_ring_val == iv:
+                return
+
+            # 绘制 PNG，并将应用图标切换为模板模式
+            out_path = self._draw_ring_png(iv)
+            if out_path and os.path.exists(out_path):
+                try:
+                    self.template = True  # 以模板方式着色
+                except Exception:
+                    pass
+                self.icon = out_path
+                self._last_ring_val = iv
+            else:
+                # 失败退回基础图标
+                try:
+                    self.template = None
+                except Exception:
+                    pass
+                if self._base_icon_path:
+                    self.icon = self._base_icon_path
+                    self._last_ring_val = None
+        except Exception:
+            try:
+                if self._base_icon_path:
+                    self.icon = self._base_icon_path
+                    self._last_ring_val = None
+            except Exception:
+                pass
+
+    def _draw_ring_png(self, percent: int) -> Optional[str]:
+        # 使用 AppKit 绘制进度圆环，导出 PNG 文件，供 rumps 加载为模板图标
+        try:
+            from AppKit import (
+                NSBitmapImageRep,
+                NSGraphicsContext,
+                NSBezierPath,
+                NSColor,
+                NSCalibratedRGBColorSpace,
+                NSBitmapImageFileTypePNG,
+                NSMakeRect,
+            )
+        except Exception:
+            return None
+
+        try:
+            # 画布尺寸用 20x20 像素以适配 rumps 的默认大小
+            size = 20
+            stroke = 2.0
+            width = height = int(size)
+
+            rep = NSBitmapImageRep.alloc().initWithBitmapDataPlanes_pixelsWide_pixelsHigh_bitsPerSample_samplesPerPixel_hasAlpha_isPlanar_colorSpaceName_bytesPerRow_bitsPerPixel_(
+                None, width, height, 8, 4, True, False, NSCalibratedRGBColorSpace, 0, 0
+            )
+            if rep is None:
+                return None
+            NSGraphicsContext.saveGraphicsState()
+            ctx = NSGraphicsContext.graphicsContextWithBitmapImageRep_(rep)
+            NSGraphicsContext.setCurrentContext_(ctx)
+
+            rect = NSMakeRect(stroke / 2.0, stroke / 2.0, width - stroke, height - stroke)
+
+            # 轨道（淡色）
+            track = NSBezierPath.bezierPathWithOvalInRect_(rect)
+            track.setLineWidth_(stroke)
+            NSColor.blackColor().colorWithAlphaComponent_(0.25).set()
+            track.stroke()
+
+            # 进度弧（从 12 点方向开始，顺时针）
+            angle = 360.0 * (float(percent) / 100.0)
+            path = NSBezierPath.bezierPath()
+            path.setLineWidth_(stroke)
+            path.setLineCapStyle_(1)  # round caps for better look
+            try:
+                path.appendBezierPathWithArcWithCenter_radius_startAngle_endAngle_clockwise_((width / 2.0, height / 2.0), (width - stroke) / 2.0, 90.0, 90.0 - angle, True)
+            except Exception:
+                path.appendBezierPathWithArcWithCenter_radius_startAngle_endAngle_clockwise_((width / 2.0, height / 2.0), (width - stroke) / 2.0, 90.0, 90.0 - angle, True)
+            NSColor.blackColor().set()
+            path.stroke()
+
+            NSGraphicsContext.restoreGraphicsState()
+
+            data = rep.representationUsingType_properties_(NSBitmapImageFileTypePNG, None)
+            if not data:
+                return None
+            out_path = self._ring_icon_path or os.path.join(CONFIG_DIR, "ring_icon.png")
+            try:
+                ensure_config_dir()
+            except Exception:
+                pass
+            ok = data.writeToFile_atomically_(out_path, True)
+            if not ok:
+                return None
+            return out_path
+        except Exception:
+            return None
 
 
 def _safe_format_template(tpl: str, ctx: Dict[str, str]) -> str:
