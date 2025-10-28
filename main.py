@@ -287,6 +287,38 @@ I18N = {
         LANG_KO: "링 내부에 백분율 표시",
         LANG_RU: "Показывать % в кольце",
     },
+    "ring_text_mode": {
+        LANG_ZH_CN: "圆环文字",
+        LANG_EN: "Ring Text",
+        LANG_ZH_TW: "圓環文字",
+        LANG_JA: "リング文字",
+        LANG_KO: "링 텍스트",
+        LANG_RU: "Текст кольца",
+    },
+    "ring_text_mode_percent": {
+        LANG_ZH_CN: "百分比",
+        LANG_EN: "Percent",
+        LANG_ZH_TW: "百分比",
+        LANG_JA: "パーセント",
+        LANG_KO: "퍼센트",
+        LANG_RU: "Проценты",
+    },
+    "ring_text_mode_calls": {
+        LANG_ZH_CN: "调用次数",
+        LANG_EN: "Calls",
+        LANG_ZH_TW: "調用次數",
+        LANG_JA: "呼び出し回数",
+        LANG_KO: "호출 수",
+        LANG_RU: "Вызовы",
+    },
+    "ring_text_mode_spent": {
+        LANG_ZH_CN: "使用金额",
+        LANG_EN: "Spent",
+        LANG_ZH_TW: "使用金額",
+        LANG_JA: "使用金額",
+        LANG_KO: "사용 금액",
+        LANG_RU: "Потрачено",
+    },
     "ring_text_show_percent": {
         LANG_ZH_CN: "文本显示百分号",
         LANG_EN: "Show % sign",
@@ -1084,6 +1116,8 @@ DEFAULT_CONFIG = {
     "ring_text_percent_sign": True,
     # 文本是否显示来源标签（D/M）
     "ring_text_show_label": False,
+    # 圆环文字内容：percent | calls | spent
+    "ring_text_mode": "percent",
     # 期望的 Apple TeamIdentifier（可选，用于强校验签名）
     "update_expected_team_id": "",
     # 界面语言
@@ -1440,6 +1474,10 @@ class PackycodeStatusApp(rumps.App):
         self.item_ring_color_green = rumps.MenuItem(_t("ring_color_green"), callback=self._set_ring_color_mode_green)
         self.item_ring_color_blue = rumps.MenuItem(_t("ring_color_blue"), callback=self._set_ring_color_mode_blue)
         self.item_ring_color_gradient = rumps.MenuItem(_t("ring_color_gradient"), callback=self._set_ring_color_mode_gradient)
+        # 文本模式
+        self.item_ring_text_mode_percent = rumps.MenuItem(_t("ring_text_mode_percent"), callback=self._set_ring_text_mode_percent)
+        self.item_ring_text_mode_calls = rumps.MenuItem(_t("ring_text_mode_calls"), callback=self._set_ring_text_mode_calls)
+        self.item_ring_text_mode_spent = rumps.MenuItem(_t("ring_text_mode_spent"), callback=self._set_ring_text_mode_spent)
         return [
             self.item_ring_enable,
             self.item_ring_colored,
@@ -1453,6 +1491,11 @@ class PackycodeStatusApp(rumps.App):
                 self.item_ring_color_green,
                 self.item_ring_color_blue,
                 self.item_ring_color_gradient,
+            ]},
+            {_t("ring_text_mode"): [
+                self.item_ring_text_mode_percent,
+                self.item_ring_text_mode_calls,
+                self.item_ring_text_mode_spent,
             ]},
         ]
 
@@ -1868,6 +1911,7 @@ open "$TARGET_APP"
         reverse = bool(self._cfg.get("ring_reverse", False))
         mode = (self._cfg.get("ring_color_mode") or "colorful").lower()
         show_text = bool(self._cfg.get("ring_text_enabled", False))
+        text_mode = (self._cfg.get("ring_text_mode") or "percent").lower()
         try:
             self.item_ring_enable.state = 1 if enabled else 0
             self.item_ring_colored.state = 1 if colored else 0
@@ -1883,6 +1927,10 @@ open "$TARGET_APP"
             self.item_ring_color_green.state = 1 if mode == "green" else 0
             self.item_ring_color_blue.state = 1 if mode == "blue" else 0
             self.item_ring_color_gradient.state = 1 if mode == "gradient" else 0
+            # 文本模式勾选
+            self.item_ring_text_mode_percent.state = 1 if text_mode == "percent" else 0
+            self.item_ring_text_mode_calls.state = 1 if text_mode == "calls" else 0
+            self.item_ring_text_mode_spent.state = 1 if text_mode == "spent" else 0
         except Exception:
             pass
 
@@ -1989,6 +2037,30 @@ open "$TARGET_APP"
         with self._lock:
             cur = bool(self._cfg.get("ring_text_show_label", False))
             self._cfg["ring_text_show_label"] = not cur
+            save_config(self._cfg)
+            self._last_ring_val = None
+        self._update_ring_menu_checkmarks()
+        self._render_cached_state()
+
+    def _set_ring_text_mode_percent(self, _: Optional[rumps.MenuItem] = None):
+        with self._lock:
+            self._cfg["ring_text_mode"] = "percent"
+            save_config(self._cfg)
+            self._last_ring_val = None
+        self._update_ring_menu_checkmarks()
+        self._render_cached_state()
+
+    def _set_ring_text_mode_calls(self, _: Optional[rumps.MenuItem] = None):
+        with self._lock:
+            self._cfg["ring_text_mode"] = "calls"
+            save_config(self._cfg)
+            self._last_ring_val = None
+        self._update_ring_menu_checkmarks()
+        self._render_cached_state()
+
+    def _set_ring_text_mode_spent(self, _: Optional[rumps.MenuItem] = None):
+        with self._lock:
+            self._cfg["ring_text_mode"] = "spent"
             save_config(self._cfg)
             self._last_ring_val = None
         self._update_ring_menu_checkmarks()
@@ -2622,14 +2694,50 @@ open "$TARGET_APP"
                 NSColor.blackColor().set()
                 path.stroke()
 
-            # 文字：在圆环内显示百分比
+            # 文字：在圆环内显示内容（百分比/调用次数/使用金额）
             try:
                 if bool(self._cfg.get("ring_text_enabled", False)):
-                    val = int(percent)
-                    show_pct = bool(self._cfg.get("ring_text_percent_sign", True))
-                    text = f"{val}%" if show_pct else f"{val}"
+                    src = (self._cfg.get("ring_source") or "daily").lower()
+                    mode_txt = (self._cfg.get("ring_text_mode") or "percent").lower()
+                    text = ""
+                    if mode_txt == "calls":
+                        # 今日调用次数
+                        calls = None
+                        try:
+                            u = getattr(self, "_last_usage", None) or {}
+                            tu = u.get("today_usage") or {}
+                            calls = int(tu.get("api_calls")) if (tu and tu.get("api_calls") is not None) else None
+                        except Exception:
+                            calls = None
+                        text = str(calls) if calls is not None else "-"
+                    elif mode_txt == "spent":
+                        # 已用金额（按来源）
+                        v = None
+                        try:
+                            info = getattr(self, "_last_data", None) or {}
+                            if src == "monthly":
+                                v = float(info.get("monthly_spent_usd")) if info.get("monthly_spent_usd") is not None else None
+                            else:
+                                v = float(info.get("daily_spent_usd")) if info.get("daily_spent_usd") is not None else None
+                        except Exception:
+                            v = None
+                        if v is None:
+                            text = "-"
+                        else:
+                            # 简洁格式：<10 保留1位小数；>=10 取整；>=1000 显示999+
+                            if v >= 1000:
+                                text = "999+"
+                            elif v >= 10:
+                                text = f"{int(v):d}"
+                            else:
+                                text = f"{v:.1f}"
+                    else:
+                        # 百分比
+                        val = int(percent)
+                        show_pct = bool(self._cfg.get("ring_text_percent_sign", True))
+                        text = f"{val}%" if show_pct else f"{val}"
+                    # 可选来源标签（D/M）
                     if bool(self._cfg.get("ring_text_show_label", False)):
-                        src = (self._cfg.get("ring_source") or "daily").lower()
                         prefix = "D" if src != "monthly" else "M"
                         text = f"{prefix} {text}"
                     # 字号根据位数微调
