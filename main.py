@@ -125,12 +125,12 @@ I18N = {
         LANG_RU: "За 30 дней: -",
     },
     "monthly_placeholder": {
-        LANG_ZH_CN: "每月：-/- (剩余 -)",
-        LANG_EN: "Monthly: -/- (left -)",
-        LANG_ZH_TW: "每月：-/- (剩餘 -)",
-        LANG_JA: "月次：-/- (残り -)",
-        LANG_KO: "월간: -/- (잔여 -)",
-        LANG_RU: "Месяц: -/- (осталось -)",
+        LANG_ZH_CN: "本周期：-/- (剩余 -)",
+        LANG_EN: "Cycle: -/- (left -)",
+        LANG_ZH_TW: "本週期：-/- (剩餘 -)",
+        LANG_JA: "サイクル：-/- (残り -)",
+        LANG_KO: "주기: -/- (잔여 -)",
+        LANG_RU: "Цикл: -/- (осталось -)",
     },
     "cycle_placeholder": {
         LANG_ZH_CN: "周期：-",
@@ -384,12 +384,12 @@ I18N = {
         LANG_RU: "День",
     },
     "ring_source_monthly": {
-        LANG_ZH_CN: "每月进度",
-        LANG_EN: "Monthly",
-        LANG_ZH_TW: "每月進度",
-        LANG_JA: "月次",
-        LANG_KO: "월간",
-        LANG_RU: "Месяц",
+        LANG_ZH_CN: "周期进度",
+        LANG_EN: "Cycle",
+        LANG_ZH_TW: "週期進度",
+        LANG_JA: "サイクル",
+        LANG_KO: "주기",
+        LANG_RU: "Цикл",
     },
     "menu_affiliates": {
         LANG_ZH_CN: "推广",
@@ -546,20 +546,20 @@ I18N = {
         LANG_RU: "День: {spent}/- (ост. -)",
     },
     "monthly_full": {
-        LANG_ZH_CN: "每月：{spent}/{limit} (剩余 {remain})",
-        LANG_EN: "Monthly: {spent}/{limit} (left {remain})",
-        LANG_ZH_TW: "每月：{spent}/{limit} (剩餘 {remain})",
-        LANG_JA: "月次：{spent}/{limit} (残り {remain})",
-        LANG_KO: "월간: {spent}/{limit} (잔여 {remain})",
-        LANG_RU: "Месяц: {spent}/{limit} (ост. {remain})",
+        LANG_ZH_CN: "本周期：{spent}/{limit} (剩余 {remain})",
+        LANG_EN: "Cycle: {spent}/{limit} (left {remain})",
+        LANG_ZH_TW: "本週期：{spent}/{limit} (剩餘 {remain})",
+        LANG_JA: "サイクル：{spent}/{limit} (残り {remain})",
+        LANG_KO: "주기: {spent}/{limit} (잔여 {remain})",
+        LANG_RU: "Цикл: {spent}/{limit} (ост. {remain})",
     },
     "monthly_no_limit": {
-        LANG_ZH_CN: "每月：{spent}/- (剩余 -)",
-        LANG_EN: "Monthly: {spent}/- (left -)",
-        LANG_ZH_TW: "每月：{spent}/- (剩餘 -)",
-        LANG_JA: "月次：{spent}/- (残り -)",
-        LANG_KO: "월간: {spent}/- (잔여 -)",
-        LANG_RU: "Месяц: {spent}/- (ост. -)",
+        LANG_ZH_CN: "本周期：{spent}/- (剩余 -)",
+        LANG_EN: "Cycle: {spent}/- (left -)",
+        LANG_ZH_TW: "本週期：{spent}/- (剩餘 -)",
+        LANG_JA: "サイクル：{spent}/- (残り -)",
+        LANG_KO: "주기: {spent}/- (잔여 -)",
+        LANG_RU: "Цикл: {spent}/- (ост. -)",
     },
     "cycle_expired": {
         LANG_ZH_CN: "周期：{start}-{end}（已到期）",
@@ -962,7 +962,7 @@ def _fallback_text(key: str) -> Optional[str]:
         "daily_placeholder": "每日：-/- (剩余 -)",
         "requests_placeholder": "调用次数：-",
         "usage_span_placeholder": "近30日：-",
-        "monthly_placeholder": "每月：-/- (剩余 -)",
+        "monthly_placeholder": "本周期：-/- (剩余 -)",
         "cycle_placeholder": "周期：-",
         "renew_placeholder": "续费提醒：-",
         "balance_placeholder": "余额：-",
@@ -998,7 +998,7 @@ def _fallback_text(key: str) -> Optional[str]:
         "ring_enable": "在图标显示进度圆环",
         "ring_source": "圆环来源",
         "ring_source_daily": "每日进度",
-        "ring_source_monthly": "每月进度",
+        "ring_source_monthly": "周期进度",
         "ring_colored": "使用彩色圆环",
         "ring_reverse": "反转模式（高亮未使用）",
         "ring_text_enable": "在圆环内显示百分比",
@@ -1017,8 +1017,8 @@ def _fallback_text(key: str) -> Optional[str]:
         "balance_prefix": "余额：{val}",
         "daily_full": "每日：{spent}/{limit} (剩余 {remain})",
         "daily_no_limit": "每日：{spent}/- (剩余 -)",
-        "monthly_full": "每月：{spent}/{limit} (剩余 {remain})",
-        "monthly_no_limit": "每月：{spent}/- (剩余 -)",
+        "monthly_full": "本周期：{spent}/{limit} (剩余 {remain})",
+        "monthly_no_limit": "本周期：{spent}/- (剩余 -)",
         "cycle_expired": "周期：{start}-{end}（已到期）",
         "cycle_remaining": "周期：{start}-{end}（剩余{days}天）",
         "renew_expired": "⚠️ 已到期，请尽快续费",
@@ -1298,6 +1298,9 @@ class PackycodeStatusApp(rumps.App):
         self._last_error: Optional[Exception] = None
         self._last_usage: Optional[Dict[str, Any]] = None
         self._last_sub_period: Optional[Tuple[datetime.date, datetime.date]] = None
+        # 周期用量覆盖（若订阅接口提供当前周期用量/限额，则覆盖“每月”展示）
+        self._last_cycle_spent: Optional[float] = None
+        self._last_cycle_limit: Optional[float] = None
         self._jwt_expired_notified: bool = False
         self._base_icon_path: Optional[str] = icon
         self._ring_icon_path: Optional[str] = os.path.join(CONFIG_DIR, "ring_icon.png")
@@ -1618,7 +1621,7 @@ class PackycodeStatusApp(rumps.App):
         webbrowser.open(dashboard or base)
 
     def open_latency_monitor(self, _: Optional[rumps.MenuItem] = None):
-        webbrowser.open("https://packy.te.sb/")
+        webbrowser.open("https://status.packyapi.com/")
 
     def open_affiliate_packycode(self, _: Optional[rumps.MenuItem] = None):
         webbrowser.open("https://www.packycode.com/?aff=prr4jxm7")
@@ -2189,11 +2192,26 @@ open "$TARGET_APP"
             except Exception:
                 sub_period = None
             self._last_sub_period = sub_period
+            # 尝试拉取周期用量（若接口提供，覆盖“每月”统计的已用/上限）
+            try:
+                cycle_amt = self._maybe_fetch_cycle_amount()
+                if cycle_amt is not None:
+                    spent, limit = cycle_amt
+                    self._last_cycle_spent = spent
+                    self._last_cycle_limit = limit
+                else:
+                    self._last_cycle_spent = None
+                    self._last_cycle_limit = None
+            except Exception:
+                self._last_cycle_spent = None
+                self._last_cycle_limit = None
             self._last_error = None
             self._update_ui_from_info(info, usage, sub_period)
         except Exception as e:
             self._last_error = e
             self._last_sub_period = None
+            self._last_cycle_spent = None
+            self._last_cycle_limit = None
             self._update_ui_error(e)
 
     def _fetch_user_info(self) -> Optional[Dict[str, Any]]:
@@ -2233,6 +2251,72 @@ open "$TARGET_APP"
         token = (self._cfg.get("token") or "").strip()
         if not _is_probable_jwt(token):
             return None
+
+    def _maybe_fetch_cycle_amount(self) -> Optional[Tuple[Optional[float], Optional[float]]]:
+        """调用订阅接口，尝试获取当前周期的已用金额与限额。
+
+        返回 (spent_usd, limit_usd)。若接口无相关字段则返回 None。
+        """
+        token = (self._cfg.get("token") or "").strip()
+        if not token or not _is_probable_jwt(token):
+            return None
+
+        # 仅 codex_shared/私有等存在订阅；沿用 codex 环境以获取周期信息
+        env = ACCOUNT_ENV.get("codex_shared", ACCOUNT_ENV["shared"])  # type: ignore
+        base = env["base"]
+        url = f"{base}{SUBSCRIPTIONS_PATH}"
+        headers = {
+            "Authorization": f"Bearer {token}",
+            "Accept": "application/json",
+            "User-Agent": "PackyCode-StatusBar/1.0",
+        }
+        try:
+            resp = requests.get(url, headers=headers, timeout=10)
+            if resp.status_code >= 400:
+                return None
+            payload = resp.json()
+        except Exception:
+            return None
+
+        items = payload.get("data") if isinstance(payload, dict) else None
+        if not isinstance(items, list) or not items:
+            return None
+
+        selected = None
+        for it in items:
+            if isinstance(it, dict) and it.get("status") == "active":
+                selected = it
+                break
+        if selected is None:
+            selected = items[0] if isinstance(items[0], dict) else None
+        if not isinstance(selected, dict):
+            return None
+
+        def _get_float(d: Dict[str, Any], keys: list[str]) -> Optional[float]:
+            for k in keys:
+                if k in d and d[k] is not None:
+                    try:
+                        return float(d[k])
+                    except Exception:
+                        pass
+            return None
+
+        # 常见字段名猜测：尽量只取“当前周期”的字段
+        spent = _get_float(selected, [
+            "current_period_spent_usd",
+            "current_period_spent",
+            "period_spent_usd",
+            "period_spent",
+        ])
+        limit = _get_float(selected, [
+            "current_period_budget_usd",
+            "current_period_limit_usd",
+            "period_budget_usd",
+            "period_limit_usd",
+        ])
+        if spent is None and limit is None:
+            return None
+        return (spent, limit)
 
         user_id = _extract_user_id_from_jwt(token)
         if not user_id:
@@ -2329,6 +2413,22 @@ open "$TARGET_APP"
         daily_spent = parse_float(info.get("daily_spent_usd"))
         monthly_limit = parse_float(info.get("monthly_budget_usd"))
         monthly_spent = parse_float(info.get("monthly_spent_usd"))
+        # 周期覆盖：若订阅接口返回周期用量/限额，则应用到“月度/周期”展示
+        try:
+            if getattr(self, "_last_cycle_spent", None) is not None:
+                monthly_spent = float(self._last_cycle_spent)  # type: ignore[arg-type]
+            if getattr(self, "_last_cycle_limit", None) is not None:
+                monthly_limit = float(self._last_cycle_limit)  # type: ignore[arg-type]
+        except Exception:
+            pass
+        # 若订阅接口提供了当前周期用量/限额，则覆盖“每月”统计
+        try:
+            if getattr(self, "_last_cycle_spent", None) is not None:
+                monthly_spent = float(self._last_cycle_spent)  # type: ignore[arg-type]
+            if getattr(self, "_last_cycle_limit", None) is not None:
+                monthly_limit = float(self._last_cycle_limit)  # type: ignore[arg-type]
+        except Exception:
+            pass
         balance_str = info.get("balance_usd")
         balance = parse_float(balance_str) if balance_str is not None else None
 
@@ -2549,7 +2649,11 @@ open "$TARGET_APP"
                 try:
                     info = getattr(self, "_last_data", None) or {}
                     if src == "monthly":
-                        v = float(info.get("monthly_spent_usd")) if info.get("monthly_spent_usd") is not None else None
+                        # 周期优先
+                        if getattr(self, "_last_cycle_spent", None) is not None:
+                            v = float(self._last_cycle_spent)  # type: ignore[arg-type]
+                        else:
+                            v = float(info.get("monthly_spent_usd")) if info.get("monthly_spent_usd") is not None else None
                     else:
                         v = float(info.get("daily_spent_usd")) if info.get("daily_spent_usd") is not None else None
                 except Exception:

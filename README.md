@@ -10,8 +10,8 @@
 ## 功能
 - 状态栏实时展示：
   - 公交车（shared）：显示账户余额 `$12.34`
-  - 滴滴车（private）/ Codex 公交车（codex_shared）：显示每日/每月消费与预算进度 `D 1.2/20 | M 15.0/300`
-- 菜单展示详细数据：每日/每月已用、限额、剩余、上次更新时间
+  - 滴滴车（private）/ Codex 公交车（codex_shared）：显示每日/周期消费与预算进度 `D 1.2/20 | M 15.0/300`
+- 菜单展示详细数据：每日/周期已用、限额、剩余、上次更新时间
   - 新增：显示周期与续费提醒
     - 周期：优先使用订阅接口 `current_period_start/current_period_end`（`/api/backend/subscriptions`），其次使用 `plan_expires_at`；若都无则按自然月，展示 `MM.DD-MM.DD`
     - 续费提醒：到期前 3 天显示“即将到期/建议续费”，平时不展示
@@ -57,9 +57,9 @@ bash build_app.sh --no-venv
 - 点击菜单栏图标 → “设置 Token...” 填写 PackyCode 的 JWT 或 API Key
 - 点击“账号类型”选择当前使用的环境（共享/滴滴车/Codex）
  - 点击“标题格式”选择“百分比”或“自定义...”。自定义模板支持占位符：
-   - {d_pct} / {m_pct}：日/月百分比（0-100，取整）
-   - {d_spent} / {m_spent}：日/月已用（1位小数）
-   - {d_limit} / {m_limit}：日/月预算上限（取整）
+   - {d_pct} / {m_pct}：日/周期百分比（0-100，取整）
+   - {d_spent} / {m_spent}：日/周期已用（1位小数）
+   - {d_limit} / {m_limit}：日/周期预算上限（取整）
    - {bal}：余额（2位小数）
    示例：`D {d_pct}% | M {m_pct}%` 或 `$ {bal}`
 
