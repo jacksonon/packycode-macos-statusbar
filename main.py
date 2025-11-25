@@ -117,12 +117,12 @@ I18N = {
         LANG_RU: "Запросов: -",
     },
     "usage_span_placeholder": {
-        LANG_ZH_CN: "近30日：-",
-        LANG_EN: "Last 30 days: -",
-        LANG_ZH_TW: "近30日：-",
-        LANG_JA: "直近30日：-",
-        LANG_KO: "최근 30일: -",
-        LANG_RU: "За 30 дней: -",
+        LANG_ZH_CN: "7日日均：-",
+        LANG_EN: "Last 7 days: -",
+        LANG_ZH_TW: "7日日均：-",
+        LANG_JA: "直近7日：-",
+        LANG_KO: "최근 7일: -",
+        LANG_RU: "За 7 дней: -",
     },
     "monthly_placeholder": {
         LANG_ZH_CN: "本周期：-/- (剩余 -)",
@@ -514,12 +514,12 @@ I18N = {
         LANG_RU: "Запросов: {val}",
     },
     "usage_span_prefix": {
-        LANG_ZH_CN: "近30日：{val}",
-        LANG_EN: "Last 30 days: {val}",
-        LANG_ZH_TW: "近30日：{val}",
-        LANG_JA: "直近30日：{val}",
-        LANG_KO: "최근 30일: {val}",
-        LANG_RU: "За 30 дней: {val}",
+        LANG_ZH_CN: "7日日均：{val}",
+        LANG_EN: "Last 7 days: {val}",
+        LANG_ZH_TW: "7日日均：{val}",
+        LANG_JA: "直近7日：{val}",
+        LANG_KO: "최근 7일: {val}",
+        LANG_RU: "За 7 дней: {val}",
     },
     "usage_span_desc": {
         LANG_ZH_CN: "总 {total}，日均 {avg}",
@@ -961,7 +961,7 @@ def _fallback_text(key: str) -> Optional[str]:
         "status_uninitialized": "状态：未初始化",
         "daily_placeholder": "每日：-/- (剩余 -)",
         "requests_placeholder": "调用次数：-",
-        "usage_span_placeholder": "近30日：-",
+        "usage_span_placeholder": "7日日均：-",
         "monthly_placeholder": "本周期：-/- (剩余 -)",
         "cycle_placeholder": "周期：-",
         "renew_placeholder": "续费提醒：-",
@@ -1013,7 +1013,7 @@ def _fallback_text(key: str) -> Optional[str]:
         # 顶部动态模板与前缀
         "last_update_prefix": "上次更新：{time}",
         "requests_prefix": "调用次数：{val}",
-        "usage_span_prefix": "近30日：{val}",
+        "usage_span_prefix": "7日日均：{val}",
         "balance_prefix": "余额：{val}",
         "daily_full": "每日：{spent}/{limit} (剩余 {remain})",
         "daily_no_limit": "每日：{spent}/- (剩余 -)",
@@ -1144,7 +1144,7 @@ ACCOUNT_ENV = {
 }
 
 USER_INFO_PATH = "/api/backend/users/info"
-USAGE_STATS_PATH_TMPL = "/api/backend/users/{user_id}/usage-stats?days=30"
+USAGE_STATS_PATH_TMPL = "/api/backend/users/{user_id}/usage-stats?days=7"
 SUBSCRIPTIONS_PATH = "/api/backend/subscriptions?page=1&per_page=5"
 
 # 候选图标
@@ -2252,6 +2252,27 @@ open "$TARGET_APP"
         if not _is_probable_jwt(token):
             return None
 
+        user_id = _extract_user_id_from_jwt(token)
+        if not user_id:
+            return None
+
+        # 统一使用 codex 域（接口示例提供于该域）
+        env = ACCOUNT_ENV.get("codex_shared", ACCOUNT_ENV["shared"])  # type: ignore
+        url = f"{env['base']}{USAGE_STATS_PATH_TMPL.format(user_id=user_id)}"
+
+        headers = {
+            "Authorization": f"Bearer {token}",
+            "Accept": "application/json",
+            "User-Agent": "PackyCode-StatusBar/1.0",
+        }
+        resp = requests.get(url, headers=headers, timeout=10)
+        if resp.status_code >= 400:
+            return None
+        try:
+            return resp.json()
+        except Exception:
+            return None
+
     def _maybe_fetch_cycle_amount(self) -> Optional[Tuple[Optional[float], Optional[float]]]:
         """调用订阅接口，尝试获取当前周期的已用金额与限额。
 
@@ -2317,27 +2338,6 @@ open "$TARGET_APP"
         if spent is None and limit is None:
             return None
         return (spent, limit)
-
-        user_id = _extract_user_id_from_jwt(token)
-        if not user_id:
-            return None
-
-        # 统一使用 codex 域（接口示例提供于该域）
-        env = ACCOUNT_ENV.get("codex_shared", ACCOUNT_ENV["shared"])  # type: ignore
-        url = f"{env['base']}{USAGE_STATS_PATH_TMPL.format(user_id=user_id)}"
-
-        headers = {
-            "Authorization": f"Bearer {token}",
-            "Accept": "application/json",
-            "User-Agent": "PackyCode-StatusBar/1.0",
-        }
-        resp = requests.get(url, headers=headers, timeout=10)
-        if resp.status_code >= 400:
-            return None
-        try:
-            return resp.json()
-        except Exception:
-            return None
 
     def _maybe_fetch_subscription_period(self) -> Optional[Tuple[datetime.date, datetime.date]]:
         """调用订阅接口，返回 (current_period_start_date, current_period_end_date)。
@@ -2445,14 +2445,24 @@ open "$TARGET_APP"
             try:
                 trend = usage.get("daily_trend") or []
                 if isinstance(trend, list) and trend:
-                    total = 0
-                    cnt = 0
+                    # 使用最近 7 天的数据计算调用总数与日均
+                    normalized = []
                     for it in trend:
+                        if not isinstance(it, dict):
+                            continue
                         try:
-                            total += int(it.get("api_calls", 0))
-                            cnt += 1
+                            calls = int(it.get("api_calls", 0))
                         except Exception:
-                            pass
+                            continue
+                        normalized.append({
+                            "date": str(it.get("date") or ""),
+                            "api_calls": calls,
+                        })
+                    # 按日期倒序取最近 7 条（接口可能返回超过 7 天的历史）
+                    normalized.sort(key=lambda x: x["date"], reverse=True)
+                    recent = normalized[:7]
+                    total = sum(it["api_calls"] for it in recent)
+                    cnt = len(recent)
                     if cnt > 0:
                         span_desc = _t("usage_span_desc", total=total, avg=round_half_up(total / cnt))
             except Exception:
